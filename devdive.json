@@ -1,0 +1,132 @@
+{
+  "meta": {
+    "version": "1.0"
+  },
+  "project": {
+    "name": "dev-dive",
+    "repo": "sebtsang/dev-dive",
+    "created_at": "2026-03-15T05:51:03Z"
+  },
+  "tasks": [
+    {
+      "id": "1",
+      "title": "Implement devdive init CLI workflow",
+      "description": "Add scanning, planner call, optional repo creation, GitHub issue creation, devdive.json write, and dashboard launch in the init command.",
+      "status": "open",
+      "estimate_hours": 8,
+      "design_notes": "Structure init as a sequential pipeline with each step returning a context object; abort on failure and rollback partial changes.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/1",
+      "labels": [
+        "frontend",
+        "backend",
+        "api"
+      ]
+    },
+    {
+      "id": "2",
+      "title": "Build planner agent to call HF LLM",
+      "description": "Create internal/agent/planner.go that sends codebase summary to the HuggingFace inference endpoint, parses JSON task list, and validates required fields.",
+      "status": "open",
+      "estimate_hours": 6,
+      "design_notes": "Define a Planner interface and inject an HTTP client to enable unit testing with a mock response.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/2",
+      "labels": [
+        "backend",
+        "api",
+        "testing"
+      ]
+    },
+    {
+      "id": "3",
+      "title": "Add GitHub integration for repo \u0026 issue management",
+      "description": "Implement repository creation, issue creation with labels, and devdive.json version commits via the Contents API.",
+      "status": "open",
+      "estimate_hours": 7,
+      "design_notes": "Encapsulate GitHub calls in a service layer that retries transient errors and logs request IDs for traceability.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/3",
+      "labels": [
+        "backend",
+        "api",
+        "devops"
+      ]
+    },
+    {
+      "id": "4",
+      "title": "Create file and git watchers with broadcast",
+      "description": "Use fsnotify to watch devdive.json and other project files, and a git poller to detect new commits, then push updates to the WebSocket hub.",
+      "status": "open",
+      "estimate_hours": 6,
+      "design_notes": "Run watchers in separate goroutines coordinated via a shared context and protect state with a sync.RWMutex.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/4",
+      "labels": [
+        "backend",
+        "devops",
+        "testing"
+      ]
+    },
+    {
+      "id": "5",
+      "title": "Implement commit analysis LLM agent",
+      "description": "Send commit diffs to the LLM, parse returned task progress JSON, and update task status in devdive.json.",
+      "status": "open",
+      "estimate_hours": 5,
+      "design_notes": "Cache recent diffs to avoid re‑processing the same commit and debounce rapid pushes.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/5",
+      "labels": [
+        "backend",
+        "api",
+        "testing"
+      ]
+    },
+    {
+      "id": "6",
+      "title": "Add design review agent for architectural drift",
+      "description": "Trigger after every 10 commits or on-demand, compare changed files against original design notes, and record drift findings in devdive.json.",
+      "status": "open",
+      "estimate_hours": 5,
+      "design_notes": "Store findings with severity levels and surface them via the WS so the dashboard can filter them.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/6",
+      "labels": [
+        "backend",
+        "api",
+        "testing"
+      ]
+    },
+    {
+      "id": "7",
+      "title": "Develop Go HTTP server with embedded dashboard",
+      "description": "Set up net/http server, Gorilla WebSocket hub, and embed the Vite build output via go:embed, serving it at localhost:7777.",
+      "status": "open",
+      "estimate_hours": 6,
+      "design_notes": "Initialize the server with graceful shutdown handling and inject the state manager for real‑time broadcasts.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/7",
+      "labels": [
+        "frontend",
+        "backend",
+        "devops"
+      ]
+    },
+    {
+      "id": "8",
+      "title": "Build Preact dashboard UI components",
+      "description": "Create pages for issues, CI status, nudges, commit log, and design reviews; connect to WebSocket context for live updates.",
+      "status": "open",
+      "estimate_hours": 8,
+      "design_notes": "Leverage preact-iso routing and a central WS provider to avoid duplicated listeners across components.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/8",
+      "labels": [
+        "frontend",
+        "testing"
+      ]
+    }
+  ],
+  "ci": {
+    "status": "unknown",
+    "last_run": "",
+    "workflow_url": ""
+  },
+  "nudges": [],
+  "commits": [],
+  "reviews": [],
+  "init_commit": "aa37d7a4721689b5731b4d78d952c2a716434217"
+}
