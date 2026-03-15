@@ -67,9 +67,7 @@ func WatchGit(ctx context.Context, repoPath string, statePath string) error {
 }
 
 func analyseCommit(ctx context.Context, repoPath string, statePath string, hash string) {
-	diffCmd := exec.CommandContext(ctx, "git", "diff", hash+"~1", hash)
-	diffCmd.Dir = repoPath
-	diffOutput, err := diffCmd.Output()
+	diffOutput, err := commitDiff(ctx, repoPath, hash)
 	if err != nil {
 		log.Printf("git watcher failed to diff commit %s: %v", hash, err)
 		return
@@ -107,4 +105,11 @@ func analyseCommit(ctx context.Context, repoPath string, statePath string, hash 
 	if err := gh.CommitState(context.Background(), strings.TrimSpace(os.Getenv("GITHUB_REPO")), statePath, analysis.Summary); err != nil {
 		log.Printf("git watcher failed to schedule github commit: %v", err)
 	}
+}
+
+func commitDiff(ctx context.Context, repoPath string, hash string) ([]byte, error) {
+	// --root makes the initial commit diff against the empty tree instead of failing on hash~1.
+	cmd := exec.CommandContext(ctx, "git", "show", "--format=", "--root", hash)
+	cmd.Dir = repoPath
+	return cmd.Output()
 }
