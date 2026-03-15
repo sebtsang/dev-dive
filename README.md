@@ -123,6 +123,10 @@ Issues           │
 - A GitHub personal access token with `repo` scope
 - Git installed locally
 
+### Install
+
+See [SETUP.md](/c:/Users/timot/OneDrive/Desktop/dev/dev-dive/docs/SETUP.md) for installation, uninstall, and local build instructions.
+
 ### Build from source
 
 ```bash
@@ -135,9 +139,27 @@ npm install
 npm run build        # outputs to ../internal/server/dist/
 cd ..
 
-# Build the Go binary (embeds the dist/ folder)
-go build -o devdive ./cmd/devdive
+# Build the Go binaries (embeds the dist/ folder)
+powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 ```
+
+This builds the CLI binaries into `./bin/`:
+
+- `./bin/devdive`
+- `./bin/init`
+- `./bin/run`
+- `./bin/sync`
+- `./bin/status`
+- `./bin/review`
+- `./bin/rollback`
+
+Legacy compatibility:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1
+```
+
+`scripts\install.ps1` now forwards to `scripts\devdive-install.ps1`. The full setup flow lives in [SETUP.md](/c:/Users/timot/OneDrive/Desktop/dev/dev-dive/docs/SETUP.md).
 
 ### Environment variables
 
@@ -164,10 +186,22 @@ Scans your codebase, creates a GitHub repository if one does not already exist, 
 devdive init "build a user authentication system"
 ```
 
+Direct binary:
+
+```bash
+./bin/init "build a user authentication system"
+```
+
 Optionally skip the prompt and let it infer from your README:
 
 ```bash
 devdive init --from-readme
+```
+
+Direct binary:
+
+```bash
+./bin/init --from-readme
 ```
 
 ### `devdive run`
@@ -178,12 +212,38 @@ Starts the dashboard and background watchers without re-running the planner. Use
 devdive run
 ```
 
+Direct binary:
+
+```bash
+./bin/run
+```
+
+### `devdive sync`
+
+Fetches current GitHub issue states for tasks in `devdive.json` and updates the local file without starting the dashboard.
+
+```bash
+devdive sync
+```
+
+Direct binary:
+
+```bash
+./bin/sync
+```
+
 ### `devdive status`
 
 Prints current task progress, CI status, recent commit analyses, and open drift findings to the terminal without opening the dashboard.
 
 ```bash
 devdive status
+```
+
+Direct binary:
+
+```bash
+./bin/status
 ```
 
 ### `devdive review`
@@ -194,12 +254,24 @@ Triggers an immediate one-shot design review — scans all files changed since `
 devdive review
 ```
 
+Direct binary:
+
+```bash
+./bin/review
+```
+
 ### `devdive rollback`
 
 Rolls back `devdive.json` to any previous state using a git SHA from the version history on GitHub.
 
 ```bash
 devdive rollback --sha a1b2c3d
+```
+
+Direct binary:
+
+```bash
+./bin/rollback --sha a1b2c3d
 ```
 
 ---
