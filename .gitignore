@@ -6,4 +6,5 @@ node_modules/
 web/node_modules/
 devdive.json
 bin/
-internal/server/dist/
+dev-dive-sandbox
+package-lock.json
