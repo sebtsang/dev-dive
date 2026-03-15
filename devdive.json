@@ -5,31 +5,30 @@
   "project": {
     "name": "dev-dive",
     "repo": "sebtsang/dev-dive",
-    "created_at": "2026-03-15T05:51:03Z"
+    "created_at": "2026-03-15T05:58:25Z"
   },
   "tasks": [
     {
-      "id": "1",
-      "title": "Implement devdive init CLI workflow",
-      "description": "Add scanning, planner call, optional repo creation, GitHub issue creation, devdive.json write, and dashboard launch in the init command.",
-      "status": "done",
-      "estimate_hours": 8,
-      "design_notes": "Structure init as a sequential pipeline with each step returning a context object; abort on failure and rollback partial changes.",
-      "issue_url": "https://github.com/sebtsang/dev-dive/issues/1",
+      "id": "9",
+      "title": "Add Cobra CLI skeleton with subcommands",
+      "description": "Create the main entrypoint and subcommands (init, run, sync, status, review, rollback) with flag handling and config loading from .env.",
+      "status": "in_progress",
+      "estimate_hours": 6,
+      "design_notes": "Use a single root command and inject a shared Context struct to pass logger and config to subcommands.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/9",
       "labels": [
-        "frontend",
         "backend",
-        "api"
+        "cli"
       ]
     },
     {
-      "id": "2",
-      "title": "Build planner agent to call HF LLM",
-      "description": "Create internal/agent/planner.go that sends codebase summary to the HuggingFace inference endpoint, parses JSON task list, and validates required fields.",
-      "status": "done",
-      "estimate_hours": 6,
-      "design_notes": "Define a Planner interface and inject an HTTP client to enable unit testing with a mock response.",
-      "issue_url": "https://github.com/sebtsang/dev-dive/issues/2",
+      "id": "10",
+      "title": "Implement planner agent and devdive.json generation",
+      "description": "Build scanner to harvest README and file tree, call the HuggingFace LLM endpoint, parse task JSON, write atomic devdive.json and trigger issue creation.",
+      "status": "in_progress",
+      "estimate_hours": 8,
+      "design_notes": "Wrap LLM calls in a retryable client and validate JSON schema before persisting.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/10",
       "labels": [
         "backend",
         "api",
@@ -37,41 +36,13 @@
       ]
     },
     {
-      "id": "3",
-      "title": "Add GitHub integration for repo \u0026 issue management",
-      "description": "Implement repository creation, issue creation with labels, and devdive.json version commits via the Contents API.",
+      "id": "11",
+      "title": "Create GitHub integration layer",
+      "description": "Develop functions to create issues, update issue states, and commit/push devdive.json via the Contents API, handling token auth and rate limits.",
       "status": "in_progress",
       "estimate_hours": 7,
-      "design_notes": "Encapsulate GitHub calls in a service layer that retries transient errors and logs request IDs for traceability.",
-      "issue_url": "https://github.com/sebtsang/dev-dive/issues/3",
-      "labels": [
-        "backend",
-        "api",
-        "devops"
-      ]
-    },
-    {
-      "id": "4",
-      "title": "Create file and git watchers with broadcast",
-      "description": "Use fsnotify to watch devdive.json and other project files, and a git poller to detect new commits, then push updates to the WebSocket hub.",
-      "status": "done",
-      "estimate_hours": 6,
-      "design_notes": "Run watchers in separate goroutines coordinated via a shared context and protect state with a sync.RWMutex.",
-      "issue_url": "https://github.com/sebtsang/dev-dive/issues/4",
-      "labels": [
-        "backend",
-        "devops",
-        "testing"
-      ]
-    },
-    {
-      "id": "5",
-      "title": "Implement commit analysis LLM agent",
-      "description": "Send commit diffs to the LLM, parse returned task progress JSON, and update task status in devdive.json.",
-      "status": "open",
-      "estimate_hours": 5,
-      "design_notes": "Cache recent diffs to avoid re‑processing the same commit and debounce rapid pushes.",
-      "issue_url": "https://github.com/sebtsang/dev-dive/issues/5",
+      "design_notes": "Encapsulate all GitHub calls in a repository service with interfaces for easier mocking in tests.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/11",
       "labels": [
         "backend",
         "api",
@@ -79,43 +50,56 @@
       ]
     },
     {
-      "id": "6",
-      "title": "Add design review agent for architectural drift",
-      "description": "Trigger after every 10 commits or on-demand, compare changed files against original design notes, and record drift findings in devdive.json.",
-      "status": "open",
-      "estimate_hours": 5,
-      "design_notes": "Store findings with severity levels and surface them via the WS so the dashboard can filter them.",
-      "issue_url": "https://github.com/sebtsang/dev-dive/issues/6",
-      "labels": [
-        "backend",
-        "api",
-        "testing"
-      ]
-    },
-    {
-      "id": "7",
-      "title": "Develop Go HTTP server with embedded dashboard",
-      "description": "Set up net/http server, Gorilla WebSocket hub, and embed the Vite build output via go:embed, serving it at localhost:7777.",
+      "id": "12",
+      "title": "Build HTTP server with embedded frontend and WebSocket hub",
+      "description": "Set up net/http server, embed the Vite-built dist folder via go:embed, and implement a gorilla/websocket hub that broadcasts state changes.",
       "status": "in_progress",
       "estimate_hours": 6,
-      "design_notes": "Initialize the server with graceful shutdown handling and inject the state manager for real‑time broadcasts.",
-      "issue_url": "https://github.com/sebtsang/dev-dive/issues/7",
+      "design_notes": "Use a thread‑safe hub struct with Register/Unregister channels and broadcast on devdive.json writes.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/12",
       "labels": [
-        "frontend",
         "backend",
         "devops"
       ]
     },
     {
-      "id": "8",
-      "title": "Build Preact dashboard UI components",
-      "description": "Create pages for issues, CI status, nudges, commit log, and design reviews; connect to WebSocket context for live updates.",
-      "status": "done",
-      "estimate_hours": 8,
-      "design_notes": "Leverage preact-iso routing and a central WS provider to avoid duplicated listeners across components.",
-      "issue_url": "https://github.com/sebtsang/dev-dive/issues/8",
+      "id": "13",
+      "title": "Implement file and git watchers with LLM commit analysis",
+      "description": "Use fsnotify to watch devdive.json and broadcast updates, and poll git logs to send diffs to the LLM for semantic task progress updates.",
+      "status": "in_progress",
+      "estimate_hours": 9,
+      "design_notes": "Debounce rapid git events and process diffs in a worker pool to avoid blocking the main loop.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/13",
+      "labels": [
+        "backend",
+        "watcher",
+        "testing"
+      ]
+    },
+    {
+      "id": "14",
+      "title": "Develop Preact dashboard components and WebSocket client",
+      "description": "Create pages (Issues, CI, Nudges, Commits, Reviews, Settings) with a shared WebSocket context to render live state from the server.",
+      "status": "in_progress",
+      "estimate_hours": 10,
+      "design_notes": "Leverage preact-iso for routing and TypeScript interfaces that mirror the Go state structs for type safety.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/14",
       "labels": [
         "frontend",
+        "testing"
+      ]
+    },
+    {
+      "id": "15",
+      "title": "Add design review and nudge generation logic",
+      "description": "Schedule periodic design reviews, call the LLM to detect architectural drift, categorize findings, and generate actionable nudges stored in devdive.json.",
+      "status": "open",
+      "estimate_hours": 7,
+      "design_notes": "Implement a configurable ticker (default every 10 commits) and expose a manual review command.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/15",
+      "labels": [
+        "backend",
+        "ai",
         "testing"
       ]
     }
@@ -128,184 +112,188 @@
   "nudges": [],
   "commits": [
     {
-      "commit_hash": "9a2787a",
-      "summary": "Add DevDive setup guide documentation",
-      "tasks_updated": [],
-      "tasks_progressed": [],
-      "analysed_at": "2026-03-15T05:51:06Z"
-    },
-    {
-      "commit_hash": "c81445a",
-      "summary": "Updated Sidebar component with new routes and header styling",
+      "commit_hash": "5f65940",
+      "summary": "Add status subcommand CLI entrypoint",
       "tasks_updated": [],
       "tasks_progressed": [
-        "8"
+        "9"
       ],
-      "analysed_at": "2026-03-15T05:51:07Z"
+      "analysed_at": "2026-03-15T05:58:27Z"
+    },
+    {
+      "commit_hash": "ee44f2c",
+      "summary": "Add sync CLI entrypoint using internal cli package",
+      "tasks_updated": [],
+      "tasks_progressed": [
+        "9"
+      ],
+      "analysed_at": "2026-03-15T05:58:28Z"
     },
     {
       "commit_hash": "cf1dce3",
-      "summary": "Refactor Sidebar UI: adjust routes, styling, and layout in the dashboard components",
+      "summary": "Updated Sidebar component styling and routes for dashboard UI",
       "tasks_updated": [],
       "tasks_progressed": [
-        "8"
+        "14"
       ],
-      "analysed_at": "2026-03-15T05:51:07Z"
+      "analysed_at": "2026-03-15T05:58:28Z"
+    },
+    {
+      "commit_hash": "c61712d",
+      "summary": "Add .gitignore to exclude .env and node_modules directories",
+      "tasks_updated": [],
+      "tasks_progressed": [
+        "9"
+      ],
+      "analysed_at": "2026-03-15T05:58:28Z"
     },
     {
       "commit_hash": "627ec36",
       "summary": "Enhanced planner agent with retry attempts and robust JSON parsing",
-      "tasks_updated": [
-        "2"
-      ],
-      "tasks_progressed": [],
-      "analysed_at": "2026-03-15T05:51:07Z"
-    },
-    {
-      "commit_hash": "7703e94",
-      "summary": "Add GitHub helpers to fetch current devdive state and retrieve issues.",
       "tasks_updated": [],
       "tasks_progressed": [
-        "3"
+        "10"
       ],
-      "analysed_at": "2026-03-15T05:51:07Z"
+      "analysed_at": "2026-03-15T05:58:28Z"
     },
     {
       "commit_hash": "e2f577d",
-      "summary": "Update .gitignore to include devdive.json and internal server distribution files",
+      "summary": "Update .gitignore to exclude devdive.json and embed server dist folder",
       "tasks_updated": [],
       "tasks_progressed": [
-        "1",
-        "3",
-        "4"
+        "9",
+        "12"
       ],
-      "analysed_at": "2026-03-15T05:51:07Z"
-    },
-    {
-      "commit_hash": "2c02a21",
-      "summary": "Add devdive.json and server dist folder to .gitignore",
-      "tasks_updated": [],
-      "tasks_progressed": [
-        "1",
-        "7"
-      ],
-      "analysed_at": "2026-03-15T05:51:07Z"
-    },
-    {
-      "commit_hash": "c61712d",
-      "summary": "Add .gitignore to exclude env and node_modules directories",
-      "tasks_updated": [],
-      "tasks_progressed": [
-        "7",
-        "8"
-      ],
-      "analysed_at": "2026-03-15T05:51:07Z"
-    },
-    {
-      "commit_hash": "78f98e1",
-      "summary": "Add Git commit diff helper and update docs with install scripts info",
-      "tasks_updated": [
-        "4"
-      ],
-      "tasks_progressed": [],
-      "analysed_at": "2026-03-15T05:51:07Z"
-    },
-    {
-      "commit_hash": "ee44f2c",
-      "summary": "Add sync CLI entry point invoking ExecuteSync",
-      "tasks_updated": [],
-      "tasks_progressed": [],
-      "analysed_at": "2026-03-15T05:51:07Z"
-    },
-    {
-      "commit_hash": "5f65940",
-      "summary": "Add new status CLI command entry point",
-      "tasks_updated": [],
-      "tasks_progressed": [],
-      "analysed_at": "2026-03-15T05:51:07Z"
-    },
-    {
-      "commit_hash": "ec2b156",
-      "summary": "Add compiled dashboard JS asset to server distribution",
-      "tasks_updated": [
-        "8"
-      ],
-      "tasks_progressed": [
-        "7"
-      ],
-      "analysed_at": "2026-03-15T05:51:08Z"
+      "analysed_at": "2026-03-15T05:58:28Z"
     },
     {
       "commit_hash": "f54fb65",
-      "summary": "Add new 'run' CLI entry point to execute DevDive run command",
+      "summary": "Add run subcommand binary to CLI",
       "tasks_updated": [],
       "tasks_progressed": [
-        "7"
+        "9"
       ],
-      "analysed_at": "2026-03-15T05:51:08Z"
+      "analysed_at": "2026-03-15T05:58:28Z"
     },
     {
-      "commit_hash": "9ae2fb1",
-      "summary": "Removed outdated Vite built JS asset from server distribution.",
+      "commit_hash": "78f98e1",
+      "summary": "Add script docs, fix HTML formatting, and improve git watcher diff handling with commitDiff helper",
       "tasks_updated": [],
       "tasks_progressed": [
-        "7"
+        "13"
       ],
-      "analysed_at": "2026-03-15T05:51:08Z"
+      "analysed_at": "2026-03-15T05:58:28Z"
+    },
+    {
+      "commit_hash": "9a2787a",
+      "summary": "Add SETUP.md documentation with install, build, and .env setup instructions",
+      "tasks_updated": [],
+      "tasks_progressed": [
+        "9"
+      ],
+      "analysed_at": "2026-03-15T05:58:28Z"
     },
     {
       "commit_hash": "2f02ee9",
-      "summary": "Adds full CLI command suite including init workflow",
+      "summary": "Introduce Cobra CLI with init, run, sync, status, review, rollback commands.",
       "tasks_updated": [
-        "1"
+        "9"
       ],
       "tasks_progressed": [],
-      "analysed_at": "2026-03-15T05:51:08Z"
+      "analysed_at": "2026-03-15T05:58:28Z"
     },
     {
       "commit_hash": "aa37d7a",
-      "summary": "Update .gitignore to track built server assets and ignore sandbox and lock file",
+      "summary": "Adjust .gitignore: unignore server dist, add sandbox and lockfile ignores.",
       "tasks_updated": [],
       "tasks_progressed": [
-        "7"
+        "12"
       ],
-      "analysed_at": "2026-03-15T05:51:08Z"
-    },
-    {
-      "commit_hash": "06696b6",
-      "summary": "Remove devdive.json from repo and add it plus bin/ to .gitignore",
-      "tasks_updated": [],
-      "tasks_progressed": [
-        "1"
-      ],
-      "analysed_at": "2026-03-15T05:51:08Z"
+      "analysed_at": "2026-03-15T05:58:29Z"
     },
     {
       "commit_hash": "f66bb50",
-      "summary": "Refactored main to delegate init workflow to internal CLI package",
+      "summary": "Refactored main to delegate CLI handling to internal/cli package",
       "tasks_updated": [
-        "1"
+        "9"
       ],
       "tasks_progressed": [],
-      "analysed_at": "2026-03-15T05:51:08Z"
+      "analysed_at": "2026-03-15T05:58:29Z"
     },
     {
-      "commit_hash": "ad9eff3",
-      "summary": "Update README with installation guide, binary list, and command usage examples",
+      "commit_hash": "9ae2fb1",
+      "summary": "Removed outdated bundled JS asset from embedded server distribution.",
       "tasks_updated": [],
       "tasks_progressed": [
-        "7"
+        "12"
       ],
-      "analysed_at": "2026-03-15T05:51:09Z"
+      "analysed_at": "2026-03-15T05:58:29Z"
+    },
+    {
+      "commit_hash": "2c02a21",
+      "summary": "Update .gitignore to exclude devdive.json and server distribution folder",
+      "tasks_updated": [],
+      "tasks_progressed": [
+        "10",
+        "12"
+      ],
+      "analysed_at": "2026-03-15T05:58:29Z"
+    },
+    {
+      "commit_hash": "7703e94",
+      "summary": "Add functions to fetch current devdive state and retrieve GitHub issues",
+      "tasks_updated": [],
+      "tasks_progressed": [
+        "11"
+      ],
+      "analysed_at": "2026-03-15T05:58:29Z"
+    },
+    {
+      "commit_hash": "ec2b156",
+      "summary": "Add compiled frontend asset file to embed in server distribution",
+      "tasks_updated": [],
+      "tasks_progressed": [
+        "12",
+        "14"
+      ],
+      "analysed_at": "2026-03-15T05:58:29Z"
+    },
+    {
+      "commit_hash": "c81445a",
+      "summary": "Refactor Sidebar into a sticky header with updated routes and project initials display",
+      "tasks_updated": [],
+      "tasks_progressed": [
+        "14"
+      ],
+      "analysed_at": "2026-03-15T05:58:29Z"
     },
     {
       "commit_hash": "e43a84a",
-      "summary": "Add PowerShell build and install scripts for DevDive binaries and dashboard assets",
+      "summary": "Add PowerShell scripts to build CLI binaries and install DevDive",
       "tasks_updated": [],
       "tasks_progressed": [
-        "7"
+        "9",
+        "12"
       ],
-      "analysed_at": "2026-03-15T05:51:09Z"
+      "analysed_at": "2026-03-15T05:58:29Z"
+    },
+    {
+      "commit_hash": "06696b6",
+      "summary": "Remove committed devdive.json and add it to .gitignore for runtime generation",
+      "tasks_updated": [],
+      "tasks_progressed": [
+        "10"
+      ],
+      "analysed_at": "2026-03-15T05:58:30Z"
+    },
+    {
+      "commit_hash": "ad9eff3",
+      "summary": "Update README with installation guide, binary locations, and command usage examples",
+      "tasks_updated": [],
+      "tasks_progressed": [
+        "9"
+      ],
+      "analysed_at": "2026-03-15T05:58:30Z"
     }
   ],
   "reviews": [],
