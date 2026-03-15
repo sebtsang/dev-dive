@@ -1,0 +1,296 @@
+{
+  "meta": {
+    "version": "1.0"
+  },
+  "project": {
+    "name": "dev-dive",
+    "repo": "sebtsang/dev-dive",
+    "created_at": "2026-03-15T07:48:42Z"
+  },
+  "tasks": [
+    {
+      "id": "37",
+      "title": "Design users table schema",
+      "description": "Add a users table with id, email (unique), password_hash, created_at fields and migrations for the Go backend.",
+      "status": "todo",
+      "estimate_hours": 4,
+      "design_notes": "Use a PostgreSQL UUID primary key and index the email column for fast lookup.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/37",
+      "labels": [
+        "backend",
+        "database",
+        "auth"
+      ],
+      "priority": 1,
+      "advice": "",
+      "updated_at": "2026-03-15T07:48:39Z",
+      "advice_posted_at": ""
+    },
+    {
+      "id": "38",
+      "title": "Implement password hashing utility",
+      "description": "Create a Go package that hashes passwords with bcrypt and validates them during login.",
+      "status": "todo",
+      "estimate_hours": 3,
+      "design_notes": "Wrap golang.org/x/crypto/bcrypt in a thin service to allow future algorithm swaps.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/38",
+      "labels": [
+        "backend",
+        "auth"
+      ],
+      "priority": 2,
+      "advice": "",
+      "updated_at": "2026-03-15T07:48:39Z",
+      "advice_posted_at": ""
+    },
+    {
+      "id": "39",
+      "title": "Create registration and login endpoints",
+      "description": "Add POST /api/register and POST /api/login handlers that store hashed passwords and issue JWTs on success.",
+      "status": "todo",
+      "estimate_hours": 6,
+      "design_notes": "Separate handler logic from request parsing; return signed JWTs with a 15‑minute expiry and a refresh token.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/39",
+      "labels": [
+        "backend",
+        "api",
+        "auth"
+      ],
+      "priority": 3,
+      "advice": "",
+      "updated_at": "2026-03-15T07:48:39Z",
+      "advice_posted_at": ""
+    },
+    {
+      "id": "40",
+      "title": "Add JWT authentication middleware",
+      "description": "Develop middleware that validates JWTs from Authorization headers and populates request context with user info.",
+      "status": "todo",
+      "estimate_hours": 5,
+      "design_notes": "Leverage a reusable ContextKey and abort the request with 401 on token failure.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/40",
+      "labels": [
+        "backend",
+        "api",
+        "auth"
+      ],
+      "priority": 4,
+      "advice": "",
+      "updated_at": "2026-03-15T07:48:39Z",
+      "advice_posted_at": ""
+    },
+    {
+      "id": "41",
+      "title": "Build frontend login and registration pages",
+      "description": "Create Preact components for sign‑up and sign‑in, perform client‑side validation, and call the new API endpoints.",
+      "status": "done",
+      "estimate_hours": 8,
+      "design_notes": "Use functional components with useState/useEffect and a shared AuthService for API calls.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/41",
+      "labels": [
+        "frontend",
+        "auth",
+        "api"
+      ],
+      "priority": 4,
+      "advice": "",
+      "updated_at": "2026-03-15T07:48:39Z",
+      "advice_posted_at": ""
+    },
+    {
+      "id": "42",
+      "title": "Store JWT in HttpOnly secure cookie and add logout",
+      "description": "Modify login to set an HttpOnly SameSite=Strict cookie and implement a POST /api/logout that clears it.",
+      "status": "todo",
+      "estimate_hours": 4,
+      "design_notes": "Configure cookie attributes based on the environment (development vs production).",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/42",
+      "labels": [
+        "backend",
+        "auth",
+        "api"
+      ],
+      "priority": 4,
+      "advice": "",
+      "updated_at": "2026-03-15T07:48:39Z",
+      "advice_posted_at": ""
+    },
+    {
+      "id": "43",
+      "title": "Write unit and integration tests for auth flow",
+      "description": "Add Go tests for password hashing, endpoint responses, JWT middleware, and Preact component interaction using Vitest.",
+      "status": "todo",
+      "estimate_hours": 6,
+      "design_notes": "Mock the database layer and use a table‑driven test for edge cases like duplicate email registration.",
+      "issue_url": "https://github.com/sebtsang/dev-dive/issues/43",
+      "labels": [
+        "testing",
+        "backend",
+        "auth"
+      ],
+      "priority": 4,
+      "advice": "",
+      "updated_at": "2026-03-15T07:48:39Z",
+      "advice_posted_at": ""
+    }
+  ],
+  "ci": {
+    "status": "unknown",
+    "last_run": "",
+    "workflow_url": ""
+  },
+  "nudges": [],
+  "commits": [
+    {
+      "commit_hash": "ba7943c",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:42Z"
+    },
+    {
+      "commit_hash": "c500c33",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:42Z"
+    },
+    {
+      "commit_hash": "4652d3b",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:42Z"
+    },
+    {
+      "commit_hash": "013af75",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:42Z"
+    },
+    {
+      "commit_hash": "a9318f3",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:42Z"
+    },
+    {
+      "commit_hash": "63ab255",
+      "summary": "Remove .DS_Store file",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:43Z"
+    },
+    {
+      "commit_hash": "6e5e213",
+      "summary": "Adds a new .DS_Store binary file",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:43Z"
+    },
+    {
+      "commit_hash": "e033acf",
+      "summary": "Remove stray .DS_Store file from web assets",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:43Z"
+    },
+    {
+      "commit_hash": "4ae3eb8",
+      "summary": "Add evaluate CLI entry point",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:43Z"
+    },
+    {
+      "commit_hash": "86e0236",
+      "summary": "Add readme-sync command entry point",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:43Z"
+    },
+    {
+      "commit_hash": "827915c",
+      "summary": "Add new CLI entrypoint for review command",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:43Z"
+    },
+    {
+      "commit_hash": "2d1671b",
+      "summary": "Add projectintel module for planning feature refresh from recent commits",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:43Z"
+    },
+    {
+      "commit_hash": "91f0c0b",
+      "summary": "Adds devdive.json entries documenting analysis of prior commits.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:43Z"
+    },
+    {
+      "commit_hash": "b4fedac",
+      "summary": "Adds new architectural drift review findings to devdive.json",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:44Z"
+    },
+    {
+      "commit_hash": "a3f8f35",
+      "summary": "Reopened tasks 29 and 30 in devdive.json, setting status back to open.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:44Z"
+    },
+    {
+      "commit_hash": "2cfc9ab",
+      "summary": "Add rollback CLI command and modify bundled JS assets",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:44Z"
+    },
+    {
+      "commit_hash": "7d5b822",
+      "summary": "Update devdive.json statuses and add nudges, no impact on auth tasks",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:44Z"
+    },
+    {
+      "commit_hash": "95cb9b0",
+      "summary": "Adds evaluate, readme-sync, and priorities commands to devdive CLI and updates documentation",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:44Z"
+    },
+    {
+      "commit_hash": "31ffc66",
+      "summary": "Updates devdive.json: reopens task 30, adds nudges, and records placeholder commit entries.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:44Z"
+    },
+    {
+      "commit_hash": "c14834f",
+      "summary": "Add compiled Preact assets bundle to server distribution",
+      "tasks_updated": [
+        "41"
+      ],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T07:48:44Z"
+    }
+  ],
+  "state_commits": [],
+  "reviews": [],
+  "init_commit": "2cfc9abb3a838a16b8eefbd60a38d66b7f7d0cb2",
+  "sync": {
+    "last_issue_sync": "2026-03-15T07:48:42Z",
+    "last_evaluated_commit": "2cfc9abb3a838a16b8eefbd60a38d66b7f7d0cb2",
+    "last_readme_hash": "a2c52ec279bb359a01cd268c7832c33f647fdc42",
+    "last_readme_sync": "2026-03-15T07:48:42Z"
+  }
+}
