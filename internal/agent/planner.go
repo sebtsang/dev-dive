@@ -33,40 +33,78 @@ Each task object must have exactly these keys:
 - description (string): 1-2 sentence implementation detail
 - estimate_hours (number): realistic hours for a solo developer
 - design_notes (string): one concrete architectural recommendation
-- labels (array of strings): 1-3 GitHub label strings from: ["frontend", "backend", "database", "auth", "api", "testing", "devops", "refactor"]`)
+- labels (array of strings): 1-3 GitHub label strings from: ["frontend", "backend", "database", "auth", "api", "testing", "devops", "refactor"]
+Keep the response compact. Prefer 4-8 tasks unless the feature clearly requires more.`)
 
-	userPrompt := fmt.Sprintf("Feature: %s\n\nCodebase summary:\n%s", featurePrompt, codebaseSummary)
-	content, err := runJSONCompletion(ctx, systemPrompt, userPrompt, 2000)
-	if err != nil {
-		return nil, err
+	attempts := []struct {
+		summaryLimit int
+		maxTokens    int
+	}{
+		{summaryLimit: 2200, maxTokens: 2400},
+		{summaryLimit: 1400, maxTokens: 2800},
+		{summaryLimit: 900, maxTokens: 3200},
 	}
 
-	var payload struct {
-		Tasks []struct {
-			Title         string   `json:"title"`
-			Description   string   `json:"description"`
-			EstimateHours float64  `json:"estimate_hours"`
-			DesignNotes   string   `json:"design_notes"`
-			Labels        []string `json:"labels"`
-		} `json:"tasks"`
-	}
-	if err := json.Unmarshal([]byte(content), &payload); err != nil {
-		return nil, fmt.Errorf("failed to parse planner response JSON: %w; raw=%q", err, truncate(content, 400))
+	var lastErr error
+	var lastRaw string
+	for _, attempt := range attempts {
+		summary := truncate(codebaseSummary, attempt.summaryLimit)
+		userPrompt := fmt.Sprintf("Feature: %s\n\nCodebase summary:\n%s", featurePrompt, summary)
+
+		content, err := runJSONCompletion(ctx, systemPrompt, userPrompt, attempt.maxTokens)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		payload, err := parsePlannerPayload(content)
+		if err != nil {
+			lastErr = err
+			lastRaw = content
+			continue
+		}
+
+		tasks := make([]state.Task, 0, len(payload.Tasks))
+		for _, task := range payload.Tasks {
+			tasks = append(tasks, state.Task{
+				Title:         task.Title,
+				Description:   task.Description,
+				Status:        "open",
+				EstimateHours: task.EstimateHours,
+				DesignNotes:   task.DesignNotes,
+				Labels:        task.Labels,
+			})
+		}
+
+		return tasks, nil
 	}
 
-	tasks := make([]state.Task, 0, len(payload.Tasks))
-	for _, task := range payload.Tasks {
-		tasks = append(tasks, state.Task{
-			Title:         task.Title,
-			Description:   task.Description,
-			Status:        "open",
-			EstimateHours: task.EstimateHours,
-			DesignNotes:   task.DesignNotes,
-			Labels:        task.Labels,
-		})
+	if lastRaw != "" {
+		return nil, fmt.Errorf("failed to parse planner response JSON after retries: %w; raw=%q", lastErr, truncate(lastRaw, 400))
 	}
+	return nil, lastErr
+}
 
-	return tasks, nil
+type plannerPayload struct {
+	Tasks []struct {
+		Title         string   `json:"title"`
+		Description   string   `json:"description"`
+		EstimateHours float64  `json:"estimate_hours"`
+		DesignNotes   string   `json:"design_notes"`
+		Labels        []string `json:"labels"`
+	} `json:"tasks"`
+}
+
+func parsePlannerPayload(content string) (plannerPayload, error) {
+	var payload plannerPayload
+	candidate := extractJSONObject(content)
+	if err := json.Unmarshal([]byte(candidate), &payload); err != nil {
+		return plannerPayload{}, err
+	}
+	if len(payload.Tasks) == 0 {
+		return plannerPayload{}, fmt.Errorf("planner returned zero tasks")
+	}
+	return payload, nil
 }
 
 func runJSONCompletion(ctx context.Context, systemPrompt string, userPrompt string, maxTokens int) (string, error) {
@@ -117,6 +155,21 @@ func runCompletion(ctx context.Context, systemPrompt string, userPrompt string, 
 		return "", fmt.Errorf("LLM returned empty content")
 	}
 	return content, nil
+}
+
+func extractJSONObject(content string) string {
+	content = strings.TrimSpace(content)
+	content = strings.TrimPrefix(content, "```json")
+	content = strings.TrimPrefix(content, "```")
+	content = strings.TrimSuffix(content, "```")
+	content = strings.TrimSpace(content)
+
+	start := strings.Index(content, "{")
+	end := strings.LastIndex(content, "}")
+	if start >= 0 && end > start {
+		return content[start : end+1]
+	}
+	return content
 }
 
 func truncate(value string, max int) string {
