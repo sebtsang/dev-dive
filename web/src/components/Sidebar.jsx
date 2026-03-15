@@ -24,7 +24,7 @@ function navStyle(active) {
 }
 
 export function Sidebar() {
-  const { connected, state } = useDevDive()
+  const { state } = useDevDive()
   const { path } = useRouter()
   const initials = (state.project?.name || 'DD')
     .split(/[\s-]+/)
@@ -148,46 +148,21 @@ export function Sidebar() {
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 14px',
-              borderRadius: '14px',
-              background: 'rgba(17, 26, 43, 0.88)',
-              border: '1px solid rgba(122, 147, 191, 0.14)',
-              color: '#8f9db6',
-            }}
-          >
-            <span
-              style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '999px',
-                background: connected ? '#2bc48a' : '#56657f',
-                boxShadow: connected ? '0 0 14px rgba(43, 196, 138, 0.5)' : 'none',
-              }}
-            />
-            {connected ? 'Live' : 'Offline'}
-          </span>
-          <span
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '999px',
-              display: 'grid',
-              placeItems: 'center',
-              fontWeight: 800,
-              color: '#f4f7fb',
-              background: 'linear-gradient(180deg, #273652, #172131)',
-              border: '1px solid rgba(122, 147, 191, 0.18)',
-            }}
-          >
-            {initials}
-          </span>
-        </div>
+        <span
+          style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '999px',
+            display: 'grid',
+            placeItems: 'center',
+            fontWeight: 800,
+            color: '#f4f7fb',
+            background: 'linear-gradient(180deg, #273652, #172131)',
+            border: '1px solid rgba(122, 147, 191, 0.18)',
+          }}
+        >
+          {initials}
+        </span>
       </div>
     </header>
   )

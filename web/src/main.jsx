@@ -1,7 +1,7 @@
 import { render } from 'preact'
 
 import { RouterProvider, useRouter } from './router.jsx'
-import { WebSocketProvider, useDevDive } from './ws'
+import { WebSocketProvider } from './ws'
 import { Sidebar } from './components/Sidebar'
 import { Dashboard } from './pages/Dashboard'
 import { Issues } from './pages/Issues'
@@ -11,66 +11,6 @@ import { Timetrack } from './pages/Timetrack'
 import { CommitLog } from './pages/CommitLog'
 import { Reviews } from './pages/Reviews'
 import { Settings } from './pages/Settings'
-
-function timeAgo(isoString) {
-  if (!isoString) {
-    return 'No recent sync'
-  }
-
-  const diff = Date.now() - new Date(isoString).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) {
-    return 'Just now'
-  }
-  if (minutes < 60) {
-    return `${minutes}m ago`
-  }
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) {
-    return `${hours}h ago`
-  }
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
-}
-
-function lastSynced(state) {
-  const timestamps = [
-    state.project?.created_at,
-    state.ci?.last_run,
-    ...(state.commits || []).map(item => item.analysed_at),
-    ...(state.nudges || []).map(item => item.created_at),
-    ...(state.reviews || []).map(item => item.reviewed_at),
-  ].filter(Boolean)
-
-  if (timestamps.length === 0) {
-    return ''
-  }
-
-  return timestamps
-    .map(value => new Date(value).getTime())
-    .sort((left, right) => right - left)
-    .map(value => new Date(value).toISOString())[0]
-}
-
-function ShellFooter() {
-  const { connected, state } = useDevDive()
-
-  return (
-    <footer className="shell-footer">
-      <div className="shell-footer__group">
-        <span className={`footer-dot ${connected ? 'footer-dot--live' : 'footer-dot--idle'}`} />
-        <span>{connected ? 'All systems operational' : 'Live sync unavailable'}</span>
-        <span className="footer-divider" />
-        <span>Last synced {timeAgo(lastSynced(state))}</span>
-      </div>
-      <div className="shell-footer__group shell-footer__group--muted">
-        <span>{state.project?.repo || 'devdive'}</span>
-        <span className="footer-divider" />
-        <span>Shortcuts</span>
-      </div>
-    </footer>
-  )
-}
 
 function CurrentPage() {
   const { path } = useRouter()
@@ -162,7 +102,7 @@ function App() {
           margin: 0 auto;
           display: flex;
           flex: 1;
-          padding: 34px 0 110px;
+          padding: 34px 0 48px;
         }
 
         .page {
@@ -685,56 +625,6 @@ function App() {
           padding: 24px;
         }
 
-        .shell-footer {
-          position: fixed;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 18px;
-          padding: 14px 24px;
-          border-top: 1px solid rgba(122, 147, 191, 0.14);
-          background: rgba(10, 16, 27, 0.9);
-          backdrop-filter: blur(14px);
-          color: var(--text-muted);
-          font-size: 0.94rem;
-        }
-
-        .shell-footer__group {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-
-        .shell-footer__group--muted {
-          color: #7f93b4;
-        }
-
-        .footer-dot {
-          width: 10px;
-          height: 10px;
-          border-radius: 999px;
-          display: inline-block;
-        }
-
-        .footer-dot--live {
-          background: var(--green);
-          box-shadow: 0 0 16px rgba(43, 196, 138, 0.6);
-        }
-
-        .footer-dot--idle {
-          background: #53637c;
-        }
-
-        .footer-divider {
-          width: 1px;
-          height: 14px;
-          background: rgba(122, 147, 191, 0.18);
-        }
-
         @media (max-width: 1240px) {
           .split-grid {
             grid-template-columns: 1fr;
@@ -744,7 +634,7 @@ function App() {
         @media (max-width: 860px) {
           .shell-main {
             width: calc(100% - 28px);
-            padding: 22px 0 132px;
+            padding: 22px 0 32px;
           }
 
           .page-hero {
@@ -760,11 +650,6 @@ function App() {
             grid-column: 2;
           }
 
-          .shell-footer {
-            padding: 14px 16px;
-            flex-direction: column;
-            align-items: flex-start;
-          }
         }
       `}</style>
       <WebSocketProvider>
@@ -774,7 +659,6 @@ function App() {
             <main className="shell-main">
               <CurrentPage />
             </main>
-            <ShellFooter />
           </div>
         </RouterProvider>
       </WebSocketProvider>

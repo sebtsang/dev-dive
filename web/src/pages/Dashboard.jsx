@@ -64,7 +64,6 @@ export function Dashboard() {
   const activity = recentActivity(state)
   const activeIssues = model.tasks.filter(task => task.workflowStage !== 'complete' && task.workflowStage !== 'rejected')
   const priorityTasks = model.priorityTasks.slice(0, 3)
-  const staleTasks = model.staleTasks.slice(0, 4)
 
   return (
     <section className="page">
@@ -105,12 +104,12 @@ export function Dashboard() {
         </article>
         <article className="metric-card">
           <div className="metric-card__top">
-            <div className="metric-card__label">Stale Check-ins</div>
+            <div className="metric-card__label">AI Nudges</div>
             <div className="metric-icon metric-icon--purple">CK</div>
           </div>
           <div className="metric-card__value">
-            {model.staleTasks.length}
-            <span className="metric-card__delta">{state.nudges.length} nudges recorded</span>
+            {state.nudges.length}
+            <span className="metric-card__delta">{model.priorityTasks.length} priority candidates</span>
           </div>
         </article>
         <article className="metric-card">
@@ -175,58 +174,6 @@ export function Dashboard() {
                 </article>
               ))}
               <div className="dashed-card">+ Build Priority List</div>
-            </div>
-          )}
-        </section>
-      </div>
-
-      <div className="split-grid">
-        <section className="panel">
-          <div className="panel-header">
-            <h2 className="panel-title">Intent Signals</h2>
-            <Link className="panel-link" to="/settings">Refine guidance</Link>
-          </div>
-          <div className="stack-list">
-            {model.intentSources.map(source => (
-              <article className="list-card" key={source.title}>
-                <div className="card-head">
-                  <div>
-                    <div className="panel-kicker">{source.title}</div>
-                    <h3 className="card-title">{source.status === 'active' ? 'Connected to live planning' : 'Needs manual refresh'}</h3>
-                  </div>
-                  <StatusBadge status={source.status} />
-                </div>
-                <p className="card-copy">{source.detail}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="panel">
-          <div className="panel-header">
-            <h2 className="panel-title">Stale Check-ins</h2>
-            <Link className="panel-link" to="/nudges">Open guidance</Link>
-          </div>
-          {staleTasks.length === 0 ? (
-            <div className="empty-state">No stale work right now. Recent commits are keeping the board warm.</div>
-          ) : (
-            <div className="stack-list">
-              {staleTasks.map(task => (
-                <article className="list-card" key={`stale-${task.id || task.title}`}>
-                  <div className="card-head">
-                    <div>
-                      <div className="panel-kicker">{task.id ? `Issue #${task.id}` : 'Planned task'}</div>
-                      <h3 className="card-title">{task.title}</h3>
-                    </div>
-                    <StatusBadge status={task.workflowStage} />
-                  </div>
-                  <p className="card-copy">{task.nextAction}</p>
-                  <div className="issue-meta">
-                    <span>{task.lastTouchedAt ? `Last touched ${formatTimeAgo(task.lastTouchedAt)}` : 'No commit evidence yet'}</span>
-                    <span>{task.commitCount} related commits</span>
-                  </div>
-                </article>
-              ))}
             </div>
           )}
         </section>

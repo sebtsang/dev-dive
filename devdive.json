@@ -25,7 +25,7 @@
       "id": "30",
       "title": "Build devdive init CLI workflow",
       "description": "In cmd/init/main.go, orchestrate scanning, planning, optional GitHub repo creation, issue creation, devdive.json write, initial commit via Contents API, and launch the server.",
-      "status": "in_progress",
+      "status": "open",
       "estimate_hours": 10,
       "design_notes": "Structure the command as a series of services injected via a context to keep business logic testable.",
       "issue_url": "https://github.com/sebtsang/dev-dive/issues/30",
@@ -119,7 +119,16 @@
     "last_run": "",
     "workflow_url": ""
   },
-  "nudges": [],
+  "nudges": [
+    {
+      "message": "Review the latest architectural drift warning before it spreads across more files.",
+      "created_at": "2026-03-15T06:49:40Z"
+    },
+    {
+      "message": "Review the latest architectural drift warning before it spreads across more files.",
+      "created_at": "2026-03-15T07:05:22Z"
+    }
+  ],
   "commits": [
     {
       "commit_hash": "c61712d",
@@ -295,8 +304,232 @@
         "30"
       ],
       "analysed_at": "2026-03-15T06:22:58Z"
+    },
+    {
+      "commit_hash": "0f3b7c7",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:31Z"
+    },
+    {
+      "commit_hash": "ba7943c",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:31Z"
+    },
+    {
+      "commit_hash": "f0985c5",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:31Z"
+    },
+    {
+      "commit_hash": "e9532dd",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:31Z"
+    },
+    {
+      "commit_hash": "689e9d3",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:31Z"
+    },
+    {
+      "commit_hash": "65681fb",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:31Z"
+    },
+    {
+      "commit_hash": "7e6d513",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:31Z"
+    },
+    {
+      "commit_hash": "4652d3b",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:31Z"
+    },
+    {
+      "commit_hash": "c500c33",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:31Z"
+    },
+    {
+      "commit_hash": "ebaeef4",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:31Z"
+    },
+    {
+      "commit_hash": "ebdd895",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:31Z"
+    },
+    {
+      "commit_hash": "1dc09a1",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:31Z"
+    },
+    {
+      "commit_hash": "55d6c54",
+      "summary": "No task-related changes detected.",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:31Z"
+    },
+    {
+      "commit_hash": "789ae5d",
+      "summary": "Reopened task 29 by changing its status to open",
+      "tasks_updated": [],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:34Z"
+    },
+    {
+      "commit_hash": "c14834f",
+      "summary": "Add compiled Vite assets to internal server distribution for embedded HTTP server.",
+      "tasks_updated": [],
+      "tasks_progressed": [
+        "34"
+      ],
+      "analysed_at": "2026-03-15T06:49:34Z"
+    },
+    {
+      "commit_hash": "dba5f34",
+      "summary": "Updated devdive.json timestamps and replaced old tasks with new planner and state management entries",
+      "tasks_updated": [],
+      "tasks_progressed": [
+        "29"
+      ],
+      "analysed_at": "2026-03-15T06:49:35Z"
+    },
+    {
+      "commit_hash": "f98355c",
+      "summary": "Complete planner agent task and advance init CLI and file watcher tasks",
+      "tasks_updated": [
+        "29"
+      ],
+      "tasks_progressed": [
+        "30",
+        "31"
+      ],
+      "analysed_at": "2026-03-15T06:49:35Z"
+    },
+    {
+      "commit_hash": "43809f0",
+      "summary": "Mark core tasks as in_progress in devdive.json",
+      "tasks_updated": [],
+      "tasks_progressed": [
+        "29",
+        "31",
+        "32",
+        "33"
+      ],
+      "analysed_at": "2026-03-15T06:49:37Z"
+    },
+    {
+      "commit_hash": "ce9950e",
+      "summary": "Mark planner agent task as done in devdive.json",
+      "tasks_updated": [
+        "29"
+      ],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:37Z"
+    },
+    {
+      "commit_hash": "6e8234d",
+      "summary": "Updates devdive.json, marking init CLI and planner agent tasks as completed and adding new subcommand tasks.",
+      "tasks_updated": [
+        "29",
+        "30"
+      ],
+      "tasks_progressed": [],
+      "analysed_at": "2026-03-15T06:49:39Z"
     }
   ],
-  "reviews": [],
+  "reviews": [
+    {
+      "reviewed_at": "2026-03-15T06:49:31Z",
+      "findings": [
+        {
+          "file": "devdive.json",
+          "finding": "Missing required 'drift' array for design review findings as defined in the plan",
+          "severity": "critical",
+          "detected_at": "2026-03-15T06:49:31Z"
+        },
+        {
+          "file": "web/src/planning.js",
+          "finding": "Design review logic reads 'state.reviews' instead of the planned 'state.drift' array",
+          "severity": "critical",
+          "detected_at": "2026-03-15T06:49:31Z"
+        },
+        {
+          "file": "web/src/pages/Reviews.jsx",
+          "finding": "Component displays reviews from 'state.reviews' while plan specifies drift should be stored under 'drift'",
+          "severity": "warning",
+          "detected_at": "2026-03-15T06:49:31Z"
+        },
+        {
+          "file": "web/src/pages/CI.jsx",
+          "finding": "References 'state.reviews' for latest review, diverging from planned 'drift' storage location",
+          "severity": "warning",
+          "detected_at": "2026-03-15T06:49:31Z"
+        },
+        {
+          "file": "web/src/pages/Nudges.jsx",
+          "finding": "Uses 'model.issueGuidance' which is not defined in the planning model per original spec",
+          "severity": "warning",
+          "detected_at": "2026-03-15T06:49:31Z"
+        }
+      ]
+    },
+    {
+      "reviewed_at": "2026-03-15T07:05:11Z",
+      "findings": [
+        {
+          "file": "devdive.json",
+          "finding": "Missing required 'drift' array; design review findings stored under 'reviews' instead of plan spec.",
+          "severity": "critical",
+          "detected_at": "2026-03-15T07:05:11Z"
+        },
+        {
+          "file": "web/src/planning.js",
+          "finding": "buildPlanningModel ignores a 'drift' array and derives review data from 'reviews', contradicting storage design.",
+          "severity": "critical",
+          "detected_at": "2026-03-15T07:05:11Z"
+        },
+        {
+          "file": "web/src/pages/Reviews.jsx",
+          "finding": "UI renders review findings from state.reviews, not from a 'drift' array as outlined in the architecture.",
+          "severity": "critical",
+          "detected_at": "2026-03-15T07:05:11Z"
+        },
+        {
+          "file": "web/src/components/StatusBadge.jsx",
+          "finding": "StatusBadge defines many extra status keys (active, manual, pending, unknown) beyond the planned workflow stages.",
+          "severity": "warning",
+          "detected_at": "2026-03-15T07:05:11Z"
+        }
+      ]
+    }
+  ],
   "init_commit": "aa37d7a4721689b5731b4d78d952c2a716434217"
 }
