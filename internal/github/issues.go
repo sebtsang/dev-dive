@@ -23,6 +23,12 @@ type Repository struct {
 	HTMLURL  string `json:"html_url"`
 }
 
+type Issue struct {
+	Number  int    `json:"number"`
+	State   string `json:"state"`
+	HTMLURL string `json:"html_url"`
+}
+
 func EnsureRepo(ctx context.Context, repo string, fallbackName string) (Repository, error) {
 	login, err := AuthenticatedUserLogin(ctx)
 	if err != nil {
@@ -152,6 +158,28 @@ func CreateIssue(ctx context.Context, repo string, task state.Task) (int, string
 	return payload.Number, payload.HTMLURL, nil
 }
 
+func GetIssue(ctx context.Context, repo string, issueNumber string) (Issue, error) {
+	resp, err := githubRequest(ctx, http.MethodGet, fmt.Sprintf("/repos/%s/issues/%s", repo, strings.TrimSpace(issueNumber)), nil)
+	if err != nil {
+		return Issue{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		io.Copy(io.Discard, resp.Body)
+		return Issue{}, os.ErrNotExist
+	}
+	if err := expectStatus(resp, http.StatusOK); err != nil {
+		return Issue{}, err
+	}
+
+	var issue Issue
+	if err := json.NewDecoder(resp.Body).Decode(&issue); err != nil {
+		return Issue{}, err
+	}
+	return issue, nil
+}
+
 func GetLatestWorkflowRun(ctx context.Context, repo string) (state.CI, error) {
 	resp, err := githubRequest(ctx, http.MethodGet, fmt.Sprintf("/repos/%s/actions/runs?per_page=1", repo), nil)
 	if err != nil {
@@ -231,6 +259,45 @@ func EnsureLabelsExist(ctx context.Context, repo string) error {
 	}
 
 	return nil
+}
+
+func EnsureRepoAccessible(ctx context.Context, repo string) error {
+	repo = strings.TrimSpace(repo)
+	if repo == "" {
+		return fmt.Errorf("repository is required")
+	}
+
+	if _, err := GetRepository(ctx, repo); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("no GitHub access to %s with current GITHUB_TOKEN", repo)
+		}
+		return err
+	}
+
+	resp, err := githubRequest(ctx, http.MethodGet, fmt.Sprintf("/repos/%s", repo), nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if err := expectStatus(resp, http.StatusOK); err != nil {
+		return err
+	}
+
+	var payload struct {
+		Permissions struct {
+			Push  bool `json:"push"`
+			Admin bool `json:"admin"`
+		} `json:"permissions"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return err
+	}
+	if payload.Permissions.Push || payload.Permissions.Admin {
+		return nil
+	}
+
+	return fmt.Errorf("current GITHUB_TOKEN can read %s but cannot manage labels/issues there", repo)
 }
 
 func githubRequest(ctx context.Context, method string, path string, body any) (*http.Response, error) {

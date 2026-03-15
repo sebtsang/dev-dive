@@ -85,6 +85,40 @@ func GetStateAtCommit(ctx context.Context, repo string, sha string) (state.DevDi
 	return current, nil
 }
 
+func GetCurrentState(ctx context.Context, repo string) (state.DevDiveState, error) {
+	resp, err := githubRequest(ctx, http.MethodGet, fmt.Sprintf("/repos/%s/contents/devdive.json", repo), nil)
+	if err != nil {
+		return state.DevDiveState{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		io.Copy(io.Discard, resp.Body)
+		return state.DevDiveState{}, os.ErrNotExist
+	}
+	if err := expectStatus(resp, http.StatusOK); err != nil {
+		return state.DevDiveState{}, err
+	}
+
+	var payload struct {
+		Content string `json:"content"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return state.DevDiveState{}, err
+	}
+
+	decoded, err := base64.StdEncoding.DecodeString(strings.ReplaceAll(payload.Content, "\n", ""))
+	if err != nil {
+		return state.DevDiveState{}, err
+	}
+
+	var current state.DevDiveState
+	if err := json.Unmarshal(decoded, &current); err != nil {
+		return state.DevDiveState{}, err
+	}
+	return current, nil
+}
+
 func ListStateCommits(ctx context.Context, repo string) ([]StateCommit, error) {
 	resp, err := githubRequest(ctx, http.MethodGet, fmt.Sprintf("/repos/%s/commits?path=devdive.json&per_page=20", repo), nil)
 	if err != nil {
