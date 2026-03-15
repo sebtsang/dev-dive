@@ -1,57 +1,67 @@
 import { useDevDive } from '../ws'
+import { buildPlanningModel, formatTimeAgo } from '../planning'
 
-function timeAgo(isoString) {
-  if (!isoString) {
-    return 'Unknown time'
+function derivedGuidanceItems(model) {
+  const items = []
+
+  for (const task of model.issueGuidance.slice(0, 4)) {
+    items.push({
+      id: `tip-${task.id}`,
+      title: task.title,
+      message: task.summary,
+      detail: task.detail,
+      createdAt: task.lastTouchedAt,
+      ribbon: task.stale ? 'Progress Check-in' : 'Implementation Tip',
+      tone: task.stale ? 'tone-rose' : task.workflowTone,
+    })
   }
 
-  const diff = Date.now() - new Date(isoString).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) {
-    return 'Just now'
-  }
-  if (minutes < 60) {
-    return `${minutes} minutes ago`
-  }
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) {
-    return `${hours} hours ago`
-  }
-  const days = Math.floor(hours / 24)
-  return `${days} days ago`
+  return items
 }
 
 export function Nudges() {
   const { state } = useDevDive()
-  const nudges = [...state.nudges].reverse()
+  const model = buildPlanningModel(state)
+  const liveNudges = [...state.nudges].reverse().map((nudge, index) => ({
+    id: `nudge-${index}-${nudge.created_at}`,
+    title: nudge.message,
+    message: 'Generated from current state transitions, failing signals, or architectural drift.',
+    detail: 'Use this as issue guidance, not just a passive notification.',
+    createdAt: nudge.created_at,
+    ribbon: 'AI Advisory',
+    tone: 'tone-purple',
+  }))
+  const derivedGuidance = derivedGuidanceItems(model)
+  const items = [...liveNudges, ...derivedGuidance]
 
   return (
-    <section class="page">
-      <div class="page-hero">
+    <section className="page">
+      <div className="page-hero">
         <div>
-          <p class="eyebrow">Nudges</p>
-          <h1 class="page-title">Advisory Feed</h1>
-          <p class="page-subtitle">
-            Short prompts from the planner when CI breaks, drift appears, or work starts slipping.
+          <p className="eyebrow">Nudges</p>
+          <h1 className="page-title">Advisory Feed</h1>
+          <p className="page-subtitle">
+            AI guidance now mixes global nudges with issue-level implementation tips and stale-work check-ins.
           </p>
         </div>
-        <div class="hero-actions">
-          <span class="button-secondary">{nudges.length} total nudges</span>
+        <div className="hero-actions">
+          <span className="button-secondary">{items.length} guidance items</span>
         </div>
       </div>
 
-      {nudges.length === 0 ? (
-        <div class="empty-state">No nudges yet. DevDive will suggest improvements as you work.</div>
+      {items.length === 0 ? (
+        <div className="empty-state">No nudges yet. DevDive will suggest improvements as work starts moving.</div>
       ) : (
-        <div class="stack-list">
-          {nudges.map(nudge => (
-            <article class="list-card" key={`${nudge.created_at}-${nudge.message}`}>
-              <div class="card-head">
-                <span class="priority-ribbon tone-purple">AI Advisory</span>
-                <span class="card-time">{timeAgo(nudge.created_at)}</span>
+        <div className="stack-list">
+          {items.map(item => (
+            <article className="list-card" key={item.id}>
+              <div className="card-head">
+                <span className={`priority-ribbon ${item.tone}`}>{item.ribbon}</span>
+                <span className="card-time">{item.createdAt ? formatTimeAgo(item.createdAt) : 'Planning signal'}</span>
               </div>
-              <h3 class="card-title">{nudge.message}</h3>
-              <p class="card-copy">Generated from current state transitions, failing signals, or architectural drift.</p>
+              <h3 className="card-title">{item.title}</h3>
+              <p className="card-copy">{item.message}</p>
+              <p className="detail-text" style={{ marginTop: '12px' }}>{item.detail}</p>
             </article>
           ))}
         </div>

@@ -1,3 +1,4 @@
+import { Link } from '../router.jsx'
 import { useDevDive } from '../ws'
 import { StatusBadge } from '../components/StatusBadge'
 
@@ -28,48 +29,48 @@ export function CI() {
   const recentNudge = state.nudges[state.nudges.length - 1]
 
   return (
-    <section class="page">
-      <div class="page-hero">
+    <section className="page">
+      <div className="page-hero">
         <div>
-          <p class="eyebrow">Actions</p>
-          <h1 class="page-title">Build and Release Health</h1>
-          <p class="page-subtitle">
+          <p className="eyebrow">Actions</p>
+          <h1 className="page-title">Build and Release Health</h1>
+          <p className="page-subtitle">
             The CI signal sits inside the same operational frame as nudges, drift, and recent delivery activity.
           </p>
         </div>
-        <div class="hero-actions">
+        <div className="hero-actions">
           {state.ci.workflow_url ? (
-            <a class="button" href={state.ci.workflow_url} target="_blank" rel="noreferrer">Open workflow</a>
+            <a className="button" href={state.ci.workflow_url} target="_blank" rel="noreferrer">Open workflow</a>
           ) : (
-            <span class="button-secondary">Waiting for workflow URL</span>
+            <span className="button-secondary">Waiting for workflow URL</span>
           )}
         </div>
       </div>
 
-      <div class="split-grid">
-        <section class="panel">
-          <div class="panel-header">
-            <h2 class="panel-title">Current Run</h2>
+      <div className="split-grid">
+        <section className="panel">
+          <div className="panel-header">
+            <h2 className="panel-title">Current Run</h2>
             <StatusBadge status={state.ci.status} />
           </div>
-          <div class="stack-list">
-            <article class="list-card">
-              <div class="card-head">
+          <div className="stack-list">
+            <article className="list-card">
+              <div className="card-head">
                 <div>
-                  <div class="panel-kicker">Workflow status</div>
-                  <h3 class="card-title" style={{ textTransform: 'capitalize' }}>{state.ci.status.replaceAll('_', ' ')}</h3>
+                  <div className="panel-kicker">Workflow status</div>
+                  <h3 className="card-title" style={{ textTransform: 'capitalize' }}>{state.ci.status.replaceAll('_', ' ')}</h3>
                 </div>
-                <div class="metric-icon metric-icon--green">CI</div>
+                <div className="metric-icon metric-icon--green">CI</div>
               </div>
               {state.ci.status === 'unknown' ? (
-                <p class="card-copy">No CI runs detected yet.</p>
+                <p className="card-copy">No CI runs detected yet.</p>
               ) : (
                 <>
-                  <p class="card-copy">Last run completed {timeAgo(state.ci.last_run)}.</p>
-                  <div class="issue-meta">
+                  <p className="card-copy">Last run completed {timeAgo(state.ci.last_run)}.</p>
+                  <div className="issue-meta">
                     <span>{state.ci.workflow_url ? 'Workflow run available' : 'No workflow link yet'}</span>
                     {state.ci.workflow_url ? (
-                      <a class="panel-link" href={state.ci.workflow_url} target="_blank" rel="noreferrer">View workflow</a>
+                      <a className="panel-link" href={state.ci.workflow_url} target="_blank" rel="noreferrer">View workflow</a>
                     ) : null}
                   </div>
                 </>
@@ -78,25 +79,25 @@ export function CI() {
           </div>
         </section>
 
-        <section class="panel">
-          <div class="panel-header">
-            <h2 class="panel-title">Related Signals</h2>
-            <a class="panel-link" href="/reviews">Open reviews</a>
+        <section className="panel">
+          <div className="panel-header">
+            <h2 className="panel-title">Related Signals</h2>
+            <Link className="panel-link" to="/reviews">Open reviews</Link>
           </div>
-          <div class="stack-list">
-            <article class="list-card">
-              <div class="panel-kicker">Latest review</div>
-              <h3 class="card-title">{latestReview ? `${latestReview.findings.length} findings in latest review` : 'No design reviews yet'}</h3>
-              <p class="card-copy">
+          <div className="stack-list">
+            <article className="list-card">
+              <div className="panel-kicker">Latest review</div>
+              <h3 className="card-title">{latestReview ? `${latestReview.findings.length} findings in latest review` : 'No design reviews yet'}</h3>
+              <p className="card-copy">
                 {latestReview
                   ? `Reviewed ${timeAgo(latestReview.reviewed_at)}.`
                   : 'Run devdive review to compare the codebase against the original plan.'}
               </p>
             </article>
-            <article class="list-card">
-              <div class="panel-kicker">Latest nudge</div>
-              <h3 class="card-title">{recentNudge ? 'AI advisory available' : 'No nudges yet'}</h3>
-              <p class="card-copy">{recentNudge ? recentNudge.message : 'Operational nudges will appear here when CI or reviews need attention.'}</p>
+            <article className="list-card">
+              <div className="panel-kicker">Latest nudge</div>
+              <h3 className="card-title">{recentNudge ? 'AI advisory available' : 'No nudges yet'}</h3>
+              <p className="card-copy">{recentNudge ? recentNudge.message : 'Operational nudges will appear here when CI or reviews need attention.'}</p>
             </article>
           </div>
         </section>

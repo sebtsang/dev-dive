@@ -1,6 +1,6 @@
 import { render } from 'preact'
-import { LocationProvider, Router } from 'preact-iso'
 
+import { RouterProvider, useRouter } from './router.jsx'
 import { WebSocketProvider, useDevDive } from './ws'
 import { Sidebar } from './components/Sidebar'
 import { Dashboard } from './pages/Dashboard'
@@ -56,20 +56,44 @@ function ShellFooter() {
   const { connected, state } = useDevDive()
 
   return (
-    <footer class="shell-footer">
-      <div class="shell-footer__group">
-        <span class={`footer-dot ${connected ? 'footer-dot--live' : 'footer-dot--idle'}`} />
+    <footer className="shell-footer">
+      <div className="shell-footer__group">
+        <span className={`footer-dot ${connected ? 'footer-dot--live' : 'footer-dot--idle'}`} />
         <span>{connected ? 'All systems operational' : 'Live sync unavailable'}</span>
-        <span class="footer-divider" />
+        <span className="footer-divider" />
         <span>Last synced {timeAgo(lastSynced(state))}</span>
       </div>
-      <div class="shell-footer__group shell-footer__group--muted">
+      <div className="shell-footer__group shell-footer__group--muted">
         <span>{state.project?.repo || 'devdive'}</span>
-        <span class="footer-divider" />
+        <span className="footer-divider" />
         <span>Shortcuts</span>
       </div>
     </footer>
   )
+}
+
+function CurrentPage() {
+  const { path } = useRouter()
+
+  switch (path) {
+    case '/issues':
+      return <Issues />
+    case '/ci':
+      return <CI />
+    case '/nudges':
+      return <Nudges />
+    case '/timetrack':
+      return <Timetrack />
+    case '/commits':
+      return <CommitLog />
+    case '/reviews':
+      return <Reviews />
+    case '/settings':
+      return <Settings />
+    case '/':
+    default:
+      return <Dashboard />
+  }
 }
 
 function App() {
@@ -483,7 +507,7 @@ function App() {
 
         .board-grid {
           display: grid;
-          grid-template-columns: repeat(4, minmax(280px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
           gap: 22px;
           align-items: start;
         }
@@ -715,10 +739,6 @@ function App() {
           .split-grid {
             grid-template-columns: 1fr;
           }
-
-          .board-grid {
-            grid-template-columns: repeat(2, minmax(280px, 1fr));
-          }
         }
 
         @media (max-width: 860px) {
@@ -729,10 +749,6 @@ function App() {
 
           .page-hero {
             flex-direction: column;
-          }
-
-          .board-grid {
-            grid-template-columns: 1fr;
           }
 
           .timeline-item,
@@ -752,25 +768,15 @@ function App() {
         }
       `}</style>
       <WebSocketProvider>
-        <LocationProvider>
-          <div class="shell">
+        <RouterProvider>
+          <div className="shell">
             <Sidebar />
-            <main class="shell-main">
-              <Router>
-                <Dashboard path="/" />
-                <Issues path="/issues" />
-                <CI path="/ci" />
-                <Nudges path="/nudges" />
-                <Timetrack path="/timetrack" />
-                <CommitLog path="/commits" />
-                <Reviews path="/reviews" />
-                <Settings path="/settings" />
-                <Dashboard default />
-              </Router>
+            <main className="shell-main">
+              <CurrentPage />
             </main>
             <ShellFooter />
           </div>
-        </LocationProvider>
+        </RouterProvider>
       </WebSocketProvider>
     </>
   )

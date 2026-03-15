@@ -1,3 +1,4 @@
+import { Link, useRouter } from '../router.jsx'
 import { useDevDive } from '../ws'
 
 const routes = [
@@ -11,9 +12,20 @@ const routes = [
   { href: '/settings', label: 'Settings' },
 ]
 
+function navStyle(active) {
+  return {
+    padding: '12px 16px',
+    borderRadius: '14px',
+    fontWeight: 700,
+    color: active ? '#63a5ff' : '#c2cce0',
+    background: active ? 'rgba(47, 129, 247, 0.16)' : 'transparent',
+    border: active ? '1px solid rgba(47, 129, 247, 0.22)' : '1px solid transparent',
+  }
+}
+
 export function Sidebar() {
   const { connected, state } = useDevDive()
-  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/'
+  const { path } = useRouter()
   const initials = (state.project?.name || 'DD')
     .split(/[\s-]+/)
     .filter(Boolean)
@@ -43,8 +55,8 @@ export function Sidebar() {
           flexWrap: 'wrap',
         }}
       >
-        <a
-          href="/"
+        <Link
+          to="/"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -71,7 +83,7 @@ export function Sidebar() {
             <div style={{ fontSize: '1.9rem', fontWeight: 800, letterSpacing: '-0.03em', color: '#f4f7fb' }}>DevDive</div>
             <div style={{ color: '#8f9db6', marginTop: '-2px' }}>{state.project.name || 'Project control room'}</div>
           </div>
-        </a>
+        </Link>
 
         <nav
           style={{
@@ -81,23 +93,18 @@ export function Sidebar() {
             marginRight: 'auto',
           }}
         >
-          {routes.map(route => {
-            const active = pathname === route.href
+          {routes.map(item => {
+            const active = path === item.href
+
             return (
-              <a
-                key={route.href}
-                href={route.href}
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: '14px',
-                  fontWeight: 700,
-                  color: active ? '#63a5ff' : '#c2cce0',
-                  background: active ? 'rgba(47, 129, 247, 0.16)' : 'transparent',
-                  border: active ? '1px solid rgba(47, 129, 247, 0.22)' : '1px solid transparent',
-                }}
+              <Link
+                key={item.href}
+                to={item.href}
+                aria-current={active ? 'page' : undefined}
+                style={navStyle(active)}
               >
-                {route.label}
-              </a>
+                {item.label}
+              </Link>
             )
           })}
         </nav>

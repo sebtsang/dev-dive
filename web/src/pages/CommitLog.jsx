@@ -1,68 +1,92 @@
 import { useDevDive } from '../ws'
-
-function timeAgo(isoString) {
-  if (!isoString) {
-    return 'Unknown time'
-  }
-
-  const diff = Date.now() - new Date(isoString).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) {
-    return 'Just now'
-  }
-  if (minutes < 60) {
-    return `${minutes} minutes ago`
-  }
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) {
-    return `${hours} hours ago`
-  }
-  const days = Math.floor(hours / 24)
-  return `${days} days ago`
-}
+import { buildPlanningModel, formatTimeAgo } from '../planning'
 
 export function CommitLog() {
   const { state } = useDevDive()
+  const model = buildPlanningModel(state)
   const commits = [...state.commits].reverse()
+  const completedCount = state.commits.reduce((sum, commit) => sum + (commit.tasks_updated?.length || 0), 0)
+  const progressedCount = state.commits.reduce((sum, commit) => sum + (commit.tasks_progressed?.length || 0), 0)
 
   return (
-    <section class="page">
-      <div class="page-hero">
+    <section className="page">
+      <div className="page-hero">
         <div>
-          <p class="eyebrow">Commits</p>
-          <h1 class="page-title">Delivery Timeline</h1>
-          <p class="page-subtitle">
-            Semantic commit summaries from the LLM instead of keyword-based issue closing.
+          <p className="eyebrow">Commits</p>
+          <h1 className="page-title">Delivery Timeline</h1>
+          <p className="page-subtitle">
+            Recent commits are treated as planning evidence so issue state can be re-evaluated incrementally instead of by keyword heuristics.
           </p>
         </div>
       </div>
 
+      <div className="metric-grid">
+        <article className="metric-card">
+          <div className="metric-card__top">
+            <div className="metric-card__label">Analysed Commits</div>
+            <div className="metric-icon metric-icon--blue">CM</div>
+          </div>
+          <div className="metric-card__value">{state.commits.length}</div>
+        </article>
+        <article className="metric-card">
+          <div className="metric-card__top">
+            <div className="metric-card__label">Since Last Review</div>
+            <div className="metric-icon metric-icon--amber">RV</div>
+          </div>
+          <div className="metric-card__value">{model.commitsSinceReview.length}</div>
+        </article>
+        <article className="metric-card">
+          <div className="metric-card__top">
+            <div className="metric-card__label">Issues Progressed</div>
+            <div className="metric-icon metric-icon--purple">IP</div>
+          </div>
+          <div className="metric-card__value">{progressedCount}</div>
+        </article>
+        <article className="metric-card">
+          <div className="metric-card__top">
+            <div className="metric-card__label">Issues Completed</div>
+            <div className="metric-icon metric-icon--green">DN</div>
+          </div>
+          <div className="metric-card__value">{completedCount}</div>
+        </article>
+      </div>
+
       {commits.length === 0 ? (
-        <div class="empty-state">No commits analysed yet. DevDive analyses your commits as you push.</div>
+        <div className="empty-state">No commits analysed yet. DevDive analyses your commits as you push.</div>
       ) : (
-        <div class="stack-list">
-          {commits.map(commit => (
-            <article class="list-card" key={`${commit.commit_hash}-${commit.analysed_at}`}>
-              <div class="card-head">
-                <strong class="mono">{(commit.commit_hash || '').slice(0, 7) || 'unknown'}</strong>
-                <span class="card-time">{timeAgo(commit.analysed_at)}</span>
-              </div>
-              <h3 class="card-title">{commit.summary}</h3>
-              <p class="card-copy">Commit analysis updated task progress without relying on manual issue-closing keywords.</p>
-              <div class="pill-row">
-                {(commit.tasks_updated || []).map(id => (
-                  <span class="label-tag tone-green" key={`closed-${commit.commit_hash}-${id}`}>
-                    closed #{id}
-                  </span>
-                ))}
-                {(commit.tasks_progressed || []).map(id => (
-                  <span class="label-tag tone-blue" key={`progress-${commit.commit_hash}-${id}`}>
-                    progressed #{id}
-                  </span>
-                ))}
-              </div>
-            </article>
-          ))}
+        <div className="stack-list">
+          {commits.map(commit => {
+            const withinReviewWindow = model.latestReviewAt
+              ? new Date(commit.analysed_at) > new Date(model.latestReviewAt)
+              : true
+
+            return (
+              <article className="list-card" key={`${commit.commit_hash}-${commit.analysed_at}`}>
+                <div className="card-head">
+                  <strong className="mono">{(commit.commit_hash || '').slice(0, 7) || 'unknown'}</strong>
+                  <span className="card-time">{formatTimeAgo(commit.analysed_at)}</span>
+                </div>
+                <h3 className="card-title">{commit.summary}</h3>
+                <p className="card-copy">
+                  {withinReviewWindow
+                    ? 'This commit is still inside the active review window.'
+                    : 'This commit has already been covered by the latest review window.'}
+                </p>
+                <div className="pill-row">
+                  {(commit.tasks_updated || []).map(id => (
+                    <span className="label-tag tone-green" key={`closed-${commit.commit_hash}-${id}`}>
+                      complete #{id}
+                    </span>
+                  ))}
+                  {(commit.tasks_progressed || []).map(id => (
+                    <span className="label-tag tone-blue" key={`progress-${commit.commit_hash}-${id}`}>
+                      progress #{id}
+                    </span>
+                  ))}
+                </div>
+              </article>
+            )
+          })}
         </div>
       )}
     </section>

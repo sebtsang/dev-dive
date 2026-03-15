@@ -1,28 +1,15 @@
+import { Link } from '../router.jsx'
 import { useDevDive } from '../ws'
 import { StatusBadge } from '../components/StatusBadge'
+import { buildPlanningModel, formatTimeAgo } from '../planning'
 
-function timeAgo(hours) {
-  if (hours <= 1) {
-    return 'Updated just now'
-  }
-  if (hours < 24) {
-    return `Updated ${Math.round(hours)}h ago`
-  }
-  return `Updated ${Math.round(hours / 24)}d ago`
-}
-
-function columnTone(key) {
-  if (key === 'open') {
-    return 'tone-slate'
-  }
-  if (key === 'in_progress') {
-    return 'tone-blue'
-  }
-  if (key === 'review') {
-    return 'tone-amber'
-  }
-  return 'tone-green'
-}
+const columns = [
+  { key: 'todo', title: 'To Do' },
+  { key: 'in_progress', title: 'In Progress' },
+  { key: 'review', title: 'In Review' },
+  { key: 'rejected', title: 'Rejected' },
+  { key: 'complete', title: 'Complete' },
+]
 
 function IssueCard({ task, index }) {
   const initials = (task.title || 'T')
@@ -32,31 +19,34 @@ function IssueCard({ task, index }) {
     .join('')
 
   return (
-    <article class="issue-card">
-      <div class="issue-card__head">
-        <span class="issue-id">{task.id ? `#${task.id}` : 'Task'}</span>
-        <StatusBadge status={task.status} />
+    <article className="issue-card">
+      <div className="issue-card__head">
+        <span className="issue-id">{task.id ? `#${task.id}` : 'Task'}</span>
+        <StatusBadge status={task.workflowStage} />
       </div>
-      <h3 class="issue-title">{task.title}</h3>
-      <div class="pill-row">
+      <h3 className="issue-title">{task.title}</h3>
+      <div className="pill-row">
         {(task.labels || []).map(label => (
-          <span class={`label-tag ${index % 4 === 0 ? 'tone-blue' : index % 4 === 1 ? 'tone-purple' : index % 4 === 2 ? 'tone-amber' : 'tone-slate'}`} key={`${task.id}-${label}`}>
+          <span className={`label-tag ${index % 4 === 0 ? 'tone-blue' : index % 4 === 1 ? 'tone-purple' : index % 4 === 2 ? 'tone-amber' : 'tone-slate'}`} key={`${task.id}-${label}`}>
             {label}
           </span>
         ))}
+        {task.stale ? <span className="label-tag tone-rose">stale</span> : null}
+        {task.readyForApproval ? <span className="label-tag tone-amber">approval gate</span> : null}
       </div>
-      <p class="card-copy" style={{ marginTop: '14px' }}>{task.design_notes}</p>
-      <div class="issue-meta">
-        <div class="status-row">
-          <span class="avatar-chip">{initials}</span>
+      <p className="card-copy" style={{ marginTop: '14px' }}>{task.nextAction}</p>
+      <div className="issue-meta">
+        <div className="status-row">
+          <span className="avatar-chip">{initials}</span>
           <span>{Number(task.estimate_hours || 0).toFixed(1)}h</span>
+          <span>{task.commitCount} commits</span>
         </div>
         {task.issue_url ? (
-          <a class="panel-link" href={task.issue_url} target="_blank" rel="noreferrer">
+          <a className="panel-link" href={task.issue_url} target="_blank" rel="noreferrer">
             Open issue
           </a>
         ) : (
-          <span>{timeAgo((index + 1) * 3)}</span>
+          <span>{task.lastTouchedAt ? `Touched ${formatTimeAgo(task.lastTouchedAt)}` : 'No code evidence yet'}</span>
         )}
       </div>
     </article>
@@ -65,72 +55,69 @@ function IssueCard({ task, index }) {
 
 export function Issues() {
   const { state } = useDevDive()
-  const openTasks = state.tasks.filter(task => task.status === 'open')
-  const inProgressTasks = state.tasks.filter(task => task.status === 'in_progress')
-  const doneTasks = state.tasks.filter(task => task.status === 'done')
-  const reviewIds = new Set((state.commits || []).slice(-3).flatMap(item => item.tasks_updated || []))
-  const inReviewTasks = doneTasks.filter(task => reviewIds.has(task.id))
-  const completedTasks = doneTasks.filter(task => !reviewIds.has(task.id))
-  const totalHours = state.tasks.reduce((sum, task) => sum + Number(task.estimate_hours || 0), 0)
-  const columns = [
-    { key: 'open', title: 'To Do', tasks: openTasks },
-    { key: 'in_progress', title: 'In Progress', tasks: inProgressTasks },
-    { key: 'review', title: 'In Review', tasks: inReviewTasks },
-    { key: 'done', title: 'Done', tasks: completedTasks },
-  ]
+  const model = buildPlanningModel(state)
+  const totalHours = model.tasks.reduce((sum, task) => sum + Number(task.estimate_hours || 0), 0)
 
   return (
-    <section class="page">
-      <div class="page-hero">
+    <section className="page">
+      <div className="page-hero">
         <div>
-          <p class="eyebrow">Issues</p>
-          <h1 class="page-title">{state.project.name || 'Sprint Board'}</h1>
-          <p class="page-subtitle">
-            Active development board for the generated plan, grouped into the working states that matter most day to day.
+          <p className="eyebrow">Issues</p>
+          <h1 className="page-title">{state.project.name || 'Issue Flow'}</h1>
+          <p className="page-subtitle">
+            Workflow states are derived from README-led planning, actual commit evidence, and the latest review window rather than a blank-slate board.
           </p>
         </div>
-        <div class="hero-actions">
-          <span class="button-secondary">{totalHours.toFixed(1)}h scoped</span>
-          <a class="button" href="/commits">New activity</a>
+        <div className="hero-actions">
+          <span className="button-secondary">{totalHours.toFixed(1)}h scoped</span>
+          <Link className="button" to="/reviews">Review current window</Link>
         </div>
       </div>
 
-      <div class="board-toolbar">
-        <div class="toolbar-row">
-          <span class="toolbar-chip">Filters</span>
-          <span class="toolbar-chip">Assignee</span>
-          <span class="toolbar-chip">Label</span>
-          <span class="toolbar-chip">Milestone</span>
+      <div className="board-toolbar">
+        <div className="toolbar-row">
+          <span className="toolbar-chip">README intent</span>
+          <span className="toolbar-chip">Repo files</span>
+          <span className="toolbar-chip">Commit evidence</span>
+          <span className="toolbar-chip">Drift review</span>
         </div>
-        <div class="toolbar-row">
-          <span class="toolbar-chip--active">Only my issues</span>
-          <span class="toolbar-chip">Recently updated</span>
+        <div className="toolbar-row">
+          <span className="toolbar-chip--active">{model.reviewQueue.length} awaiting approval</span>
+          <span className="toolbar-chip">{model.staleTasks.length} stale check-ins</span>
         </div>
       </div>
 
-      {state.tasks.length === 0 ? (
-        <div class="empty-state">No tasks yet. Run devdive init to get started.</div>
+      {model.tasks.length === 0 ? (
+        <div className="empty-state">No tasks yet. Run devdive init to get started.</div>
       ) : (
-        <div class="board-grid">
+        <div className="board-grid">
           {columns.map(column => (
-            <section class="board-column" key={column.key}>
-              <div class="board-column__head">
-                <div class="board-column__title">
+            <section className="board-column" key={column.key}>
+              <div className="board-column__head">
+                <div className="board-column__title">
                   <span>{column.title}</span>
-                  <span class={`board-count ${columnTone(column.key)}`}>{column.tasks.length}</span>
+                  <span className={`board-count ${model.tasksByStage[column.key][0]?.workflowTone || 'tone-slate'}`}>
+                    {model.tasksByStage[column.key].length}
+                  </span>
                 </div>
-                <span class="ghost-action">...</span>
+                <span className="ghost-action">...</span>
               </div>
 
-              <div class="board-stack">
-                {column.tasks.length === 0 ? (
-                  <div class="board-empty">Nothing parked here yet.</div>
+              <div className="board-stack">
+                {model.tasksByStage[column.key].length === 0 ? (
+                  <div className="board-empty">
+                    {column.key === 'review'
+                      ? 'Nothing is waiting on approval yet.'
+                      : column.key === 'complete'
+                        ? 'Completed work will settle here after review clears it.'
+                        : 'Nothing parked here yet.'}
+                  </div>
                 ) : (
-                  column.tasks.map((task, index) => (
+                  model.tasksByStage[column.key].map((task, index) => (
                     <IssueCard task={task} index={index} key={`${column.key}-${task.id}-${task.title}`} />
                   ))
                 )}
-                {column.key === 'open' ? <div class="dashed-card">+ Create Issue</div> : null}
+                {column.key === 'todo' ? <div className="dashed-card">+ Rebuild from README</div> : null}
               </div>
             </section>
           ))}
