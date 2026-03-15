@@ -12,46 +12,32 @@ export function Timetrack() {
 
   return (
     <section class="page">
-      <div class="page-hero">
-        <div>
-          <p class="eyebrow">Time</p>
-          <h1 class="page-title">Burndown and Throughput</h1>
-          <p class="page-subtitle">
-            A simple burndown readout from the plan estimates and the task statuses DevDive keeps in sync.
-          </p>
-        </div>
-      </div>
+      <h2 class="page-title">Time Track</h2>
+      <p class="page-subtitle">
+        A simple burndown readout from the plan estimates and the task statuses DevDive keeps in sync.
+      </p>
 
       {state.tasks.length === 0 ? (
         <div class="empty-state">No tasks yet.</div>
       ) : (
         <>
-          <div class="metric-grid">
-            <article class="metric-card">
-              <div class="metric-card__top">
-                <div class="metric-card__label">Estimated</div>
-                <div class="metric-icon metric-icon--blue">ET</div>
-              </div>
-              <div class="metric-card__value">{total.toFixed(1)}h</div>
-            </article>
-            <article class="metric-card">
-              <div class="metric-card__top">
-                <div class="metric-card__label">Completed</div>
-                <div class="metric-icon metric-icon--green">DN</div>
-              </div>
-              <div class="metric-card__value">{completed.toFixed(1)}h</div>
-            </article>
-            <article class="metric-card">
-              <div class="metric-card__top">
-                <div class="metric-card__label">Remaining</div>
-                <div class="metric-icon metric-icon--amber">RM</div>
-              </div>
-              <div class="metric-card__value">{remaining.toFixed(1)}h</div>
-            </article>
+          <div class="stat-grid">
+            <div class="stat-card">
+              <p class="stat-label">Estimated</p>
+              <p class="stat-value">{total.toFixed(1)}h</p>
+            </div>
+            <div class="stat-card">
+              <p class="stat-label">Completed</p>
+              <p class="stat-value">{completed.toFixed(1)}h</p>
+            </div>
+            <div class="stat-card">
+              <p class="stat-label">Remaining</p>
+              <p class="stat-value">{remaining.toFixed(1)}h</p>
+            </div>
           </div>
 
-          <div class="panel">
-            <div class="panel-header">
+          <div class="card" style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
               <strong>Burndown Progress</strong>
               <span>{percent}%</span>
             </div>

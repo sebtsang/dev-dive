@@ -11,14 +11,14 @@ function timeAgo(isoString) {
     return 'Just now'
   }
   if (minutes < 60) {
-    return `${minutes} minutes ago`
+    return `${minutes} minute${minutes === 1 ? '' : 's'} ago`
   }
   const hours = Math.floor(minutes / 60)
   if (hours < 24) {
-    return `${hours} hours ago`
+    return `${hours} hour${hours === 1 ? '' : 's'} ago`
   }
   const days = Math.floor(hours / 24)
-  return `${days} days ago`
+  return `${days} day${days === 1 ? '' : 's'} ago`
 }
 
 export function Nudges() {
@@ -27,31 +27,19 @@ export function Nudges() {
 
   return (
     <section class="page">
-      <div class="page-hero">
-        <div>
-          <p class="eyebrow">Nudges</p>
-          <h1 class="page-title">Advisory Feed</h1>
-          <p class="page-subtitle">
-            Short prompts from the planner when CI breaks, drift appears, or work starts slipping.
-          </p>
-        </div>
-        <div class="hero-actions">
-          <span class="button-secondary">{nudges.length} total nudges</span>
-        </div>
-      </div>
+      <h2 class="page-title">AI Nudges</h2>
+      <p class="page-subtitle">
+        Short prompts from the planner when CI breaks, drift appears, or work starts slipping.
+      </p>
 
       {nudges.length === 0 ? (
         <div class="empty-state">No nudges yet. DevDive will suggest improvements as you work.</div>
       ) : (
-        <div class="stack-list">
+        <div class="list-stack">
           {nudges.map(nudge => (
-            <article class="list-card" key={`${nudge.created_at}-${nudge.message}`}>
-              <div class="card-head">
-                <span class="priority-ribbon tone-purple">AI Advisory</span>
-                <span class="card-time">{timeAgo(nudge.created_at)}</span>
-              </div>
-              <h3 class="card-title">{nudge.message}</h3>
-              <p class="card-copy">Generated from current state transitions, failing signals, or architectural drift.</p>
+            <article class="card" key={`${nudge.created_at}-${nudge.message}`}>
+              <div style={{ fontSize: '1.05rem', lineHeight: 1.6 }}>{nudge.message}</div>
+              <div style={{ marginTop: '12px', color: 'var(--muted)' }}>{timeAgo(nudge.created_at)}</div>
             </article>
           ))}
         </div>
