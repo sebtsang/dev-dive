@@ -70,3 +70,24 @@ OPENAI_API_KEY=test
 HF_ENDPOINT=https://your-endpoint/v1
 DEVDIVE_PORT=7777
 ```
+
+The scripts in scripts are packaging/install helpers:
+
+build.ps1
+Builds the repo-local binaries into ./bin for all command entrypoints.
+
+devdive-install.ps1
+The main installer. Builds the frontend, builds the CLI, installs a managed devdive.exe, and adds its install directory to user PATH if needed.
+
+devdive-uninstall.ps1
+Removes the managed installed devdive.exe, cleans up its install directory, and removes that directory from user PATH.
+
+install.ps1
+A compatibility wrapper that just forwards to devdive-install.ps1.
+
+So practically:
+
+build.ps1 = local build
+devdive-install.ps1 = install for actual use
+devdive-uninstall.ps1 = remove installed CLI
+install.ps1 = old shortcut kept for compatibility
