@@ -123,6 +123,10 @@
     {
       "message": "Review the latest architectural drift warning before it spreads across more files.",
       "created_at": "2026-03-15T06:49:40Z"
+    },
+    {
+      "message": "Review the latest architectural drift warning before it spreads across more files.",
+      "created_at": "2026-03-15T07:05:22Z"
     }
   ],
   "commits": [
@@ -494,6 +498,35 @@
           "finding": "Uses 'model.issueGuidance' which is not defined in the planning model per original spec",
           "severity": "warning",
           "detected_at": "2026-03-15T06:49:31Z"
+        }
+      ]
+    },
+    {
+      "reviewed_at": "2026-03-15T07:05:11Z",
+      "findings": [
+        {
+          "file": "devdive.json",
+          "finding": "Missing required 'drift' array; design review findings stored under 'reviews' instead of plan spec.",
+          "severity": "critical",
+          "detected_at": "2026-03-15T07:05:11Z"
+        },
+        {
+          "file": "web/src/planning.js",
+          "finding": "buildPlanningModel ignores a 'drift' array and derives review data from 'reviews', contradicting storage design.",
+          "severity": "critical",
+          "detected_at": "2026-03-15T07:05:11Z"
+        },
+        {
+          "file": "web/src/pages/Reviews.jsx",
+          "finding": "UI renders review findings from state.reviews, not from a 'drift' array as outlined in the architecture.",
+          "severity": "critical",
+          "detected_at": "2026-03-15T07:05:11Z"
+        },
+        {
+          "file": "web/src/components/StatusBadge.jsx",
+          "finding": "StatusBadge defines many extra status keys (active, manual, pending, unknown) beyond the planned workflow stages.",
+          "severity": "warning",
+          "detected_at": "2026-03-15T07:05:11Z"
         }
       ]
     }
