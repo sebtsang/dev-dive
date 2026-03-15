@@ -11,6 +11,8 @@ const colors = {
   critical: { background: 'rgba(241, 91, 122, 0.16)', border: 'rgba(241, 91, 122, 0.2)', color: '#ff8da5' },
   warning: { background: 'rgba(241, 166, 56, 0.16)', border: 'rgba(241, 166, 56, 0.2)', color: '#ffbf69' },
   info: { background: 'rgba(143, 157, 182, 0.14)', border: 'rgba(143, 157, 182, 0.2)', color: '#b8c2d5' },
+  active: { background: 'rgba(47, 129, 247, 0.16)', border: 'rgba(47, 129, 247, 0.24)', color: '#7db1ff' },
+  manual: { background: 'rgba(154, 104, 255, 0.16)', border: 'rgba(154, 104, 255, 0.24)', color: '#c7a0ff' },
 }
 
 export function StatusBadge({ status }) {

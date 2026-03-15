@@ -1,68 +1,81 @@
 import { useDevDive } from '../ws'
-
-function timeAgo(isoString) {
-  if (!isoString) {
-    return 'Unknown time'
-  }
-
-  const diff = Date.now() - new Date(isoString).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) {
-    return 'Just now'
-  }
-  if (minutes < 60) {
-    return `${minutes} minutes ago`
-  }
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) {
-    return `${hours} hours ago`
-  }
-  const days = Math.floor(hours / 24)
-  return `${days} days ago`
-}
+import { buildPlanningModel, formatTimeAgo } from '../planning'
 
 export function CommitLog() {
   const { state } = useDevDive()
-  const analysedCommits = [...(state.commits || [])].reverse()
-  const stateCommits = [...(state.state_commits || [])]
-    .sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp))
+  const model = buildPlanningModel(state)
+  const commits = [...(state.commits || [])].reverse()
+  const stateCommits = [...(state.state_commits || [])].sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp))
+  const progressedCount = commits.reduce((sum, commit) => sum + (commit.tasks_progressed?.length || 0), 0)
+  const completedCount = commits.reduce((sum, commit) => sum + (commit.tasks_updated?.length || 0), 0)
 
   return (
-    <section class="page">
-      <div class="page-hero">
+    <section className="page">
+      <div className="page-hero">
         <div>
-          <p class="eyebrow">Commits</p>
-          <h1 class="page-title">Delivery Timeline</h1>
-          <p class="page-subtitle">
-            Local commit analysis and synced DevDive state commits from GitHub.
+          <p className="eyebrow">Commits</p>
+          <h1 className="page-title">Delivery Timeline</h1>
+          <p className="page-subtitle">
+            Local commit analysis and synced GitHub-backed DevDive state history.
           </p>
         </div>
       </div>
 
-      <div class="panel" style={{ marginBottom: '1.5rem' }}>
-        <div class="panel-header">
-          <h2 class="panel-title">Recent Repository Commit Analysis</h2>
+      <div className="metric-grid">
+        <article className="metric-card">
+          <div className="metric-card__top">
+            <div className="metric-card__label">Analysed Commits</div>
+            <div className="metric-icon metric-icon--blue">CM</div>
+          </div>
+          <div className="metric-card__value">{state.commits.length}</div>
+        </article>
+        <article className="metric-card">
+          <div className="metric-card__top">
+            <div className="metric-card__label">Since Last Review</div>
+            <div className="metric-icon metric-icon--amber">RV</div>
+          </div>
+          <div className="metric-card__value">{model.commitsSinceReview.length}</div>
+        </article>
+        <article className="metric-card">
+          <div className="metric-card__top">
+            <div className="metric-card__label">Issues Progressed</div>
+            <div className="metric-icon metric-icon--purple">IP</div>
+          </div>
+          <div className="metric-card__value">{progressedCount}</div>
+        </article>
+        <article className="metric-card">
+          <div className="metric-card__top">
+            <div className="metric-card__label">Issues Completed</div>
+            <div className="metric-icon metric-icon--green">DN</div>
+          </div>
+          <div className="metric-card__value">{completedCount}</div>
+        </article>
+      </div>
+
+      <div className="panel" style={{ marginBottom: '1.5rem' }}>
+        <div className="panel-header">
+          <h2 className="panel-title">Recent Repository Commit Analysis</h2>
         </div>
-        {analysedCommits.length === 0 ? (
-          <div class="empty-state">No local commit analysis yet. DevDive analyses project commits as they are evaluated.</div>
+        {commits.length === 0 ? (
+          <div className="empty-state">No commits analysed yet. DevDive analyses your commits as you push.</div>
         ) : (
-          <div class="stack-list">
-            {analysedCommits.map(commit => (
-              <article class="list-card" key={`${commit.commit_hash}-${commit.analysed_at}`}>
-                <div class="card-head">
-                  <strong class="mono">{(commit.commit_hash || '').slice(0, 7) || 'unknown'}</strong>
-                  <span class="card-time">{timeAgo(commit.analysed_at)}</span>
+          <div className="stack-list">
+            {commits.map(commit => (
+              <article className="list-card" key={`${commit.commit_hash}-${commit.analysed_at}`}>
+                <div className="card-head">
+                  <strong className="mono">{(commit.commit_hash || '').slice(0, 7) || 'unknown'}</strong>
+                  <span className="card-time">{formatTimeAgo(commit.analysed_at)}</span>
                 </div>
-                <h3 class="card-title">{commit.summary}</h3>
-                <p class="card-copy">Commit analysis updated task progress without relying on manual issue-closing keywords.</p>
-                <div class="pill-row">
+                <h3 className="card-title">{commit.summary}</h3>
+                <p className="card-copy">Commit analysis updated task progress without relying on manual issue-closing keywords.</p>
+                <div className="pill-row">
                   {(commit.tasks_updated || []).map(id => (
-                    <span class="label-tag tone-green" key={`closed-${commit.commit_hash}-${id}`}>
+                    <span className="label-tag tone-green" key={`closed-${commit.commit_hash}-${id}`}>
                       closed #{id}
                     </span>
                   ))}
                   {(commit.tasks_progressed || []).map(id => (
-                    <span class="label-tag tone-blue" key={`progress-${commit.commit_hash}-${id}`}>
+                    <span className="label-tag tone-blue" key={`progress-${commit.commit_hash}-${id}`}>
                       progressed #{id}
                     </span>
                   ))}
@@ -73,22 +86,22 @@ export function CommitLog() {
         )}
       </div>
 
-      <div class="panel">
-        <div class="panel-header">
-          <h2 class="panel-title">Synced DevDive State Commits</h2>
+      <div className="panel">
+        <div className="panel-header">
+          <h2 className="panel-title">Recent GitHub State Commits</h2>
         </div>
         {stateCommits.length === 0 ? (
-          <div class="empty-state">No remote DevDive state commits have been synced yet.</div>
+          <div className="empty-state">No GitHub state commits have been synced yet.</div>
         ) : (
-          <div class="stack-list">
+          <div className="stack-list">
             {stateCommits.map(commit => (
-              <article class="list-card" key={`${commit.sha}-${commit.timestamp}`}>
-                <div class="card-head">
-                  <strong class="mono">{(commit.sha || '').slice(0, 7) || 'unknown'}</strong>
-                  <span class="card-time">{timeAgo(commit.timestamp)}</span>
+              <article className="list-card" key={`${commit.sha}-${commit.timestamp}`}>
+                <div className="card-head">
+                  <strong className="mono">{(commit.sha || '').slice(0, 7) || 'unknown'}</strong>
+                  <span className="card-time">{formatTimeAgo(commit.timestamp)}</span>
                 </div>
-                <h3 class="card-title">{commit.message}</h3>
-                <p class="card-copy">This timeline comes from GitHub commits to the tracked `devdive.json` state file.</p>
+                <h3 className="card-title">{commit.message}</h3>
+                <p className="card-copy">This timeline comes from GitHub commits to the tracked `devdive.json` state file.</p>
               </article>
             ))}
           </div>

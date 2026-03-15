@@ -1,6 +1,10 @@
 # DevDive bootstrap
 .env
+devdive.json
+
 node_modules/
 web/node_modules/
 devdive.json
 bin/
+dev-dive-sandbox
+package-lock.json
