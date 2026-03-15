@@ -12,7 +12,7 @@
       "id": "29",
       "title": "Implement planner agent to generate task JSON",
       "description": "Create internal/agent/planner.go to call the HuggingFace inference endpoint, send codebase context, and deserialize the LLM response into task structs.",
-      "status": "done",
+      "status": "open",
       "estimate_hours": 6,
       "design_notes": "Encapsulate HTTP request/response in a Planner interface to allow mock implementations for testing.",
       "issue_url": "https://github.com/sebtsang/dev-dive/issues/29",
