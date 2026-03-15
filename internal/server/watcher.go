@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"log"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -40,7 +39,7 @@ func WatchAndBroadcast(ctx context.Context, statePath string, hub *Hub) error {
 			}
 
 			time.Sleep(50 * time.Millisecond)
-			data, err := os.ReadFile(statePath)
+			data, err := enrichedStateJSON(ctx, statePath)
 			if err != nil {
 				log.Printf("state watcher read failed: %v", err)
 				continue

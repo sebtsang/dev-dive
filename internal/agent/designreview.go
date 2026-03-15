@@ -11,7 +11,7 @@ import (
 	"github.com/your-username/devdive/internal/state"
 )
 
-func ReviewDesign(ctx context.Context, current state.DevDiveState, changedFiles map[string]string) (state.Review, error) {
+func ReviewDesign(ctx context.Context, current state.DevDiveState, readme string, recentCommits string, changedFiles map[string]string) (state.Review, error) {
 	review := state.Review{
 		ReviewedAt: time.Now().UTC().Format(time.RFC3339),
 		Findings:   []state.DriftFinding{},
@@ -49,8 +49,10 @@ Each finding object must have exactly these keys:
   - "critical": significant architectural mismatch that will cause problems`)
 
 	userPrompt := fmt.Sprintf(
-		"Original plan tasks:\n%s\n\nChanged files since project init:\n%s",
+		"README intent:\n%s\n\nOriginal plan tasks:\n%s\n\nRecent commits:\n%s\n\nChanged files since project init:\n%s",
+		truncate(readme, 2200),
 		strings.Join(planLines, "\n"),
+		truncate(recentCommits, 1400),
 		strings.Join(fileSections, "\n"),
 	)
 

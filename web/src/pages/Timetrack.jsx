@@ -5,7 +5,7 @@ export function Timetrack() {
   const { state } = useDevDive()
   const total = state.tasks.reduce((sum, task) => sum + Number(task.estimate_hours || 0), 0)
   const completed = state.tasks
-    .filter(task => task.status === 'done')
+    .filter(task => task.status === 'complete')
     .reduce((sum, task) => sum + Number(task.estimate_hours || 0), 0)
   const remaining = Math.max(total - completed, 0)
   const percent = total === 0 ? 0 : Math.round((completed / total) * 100)

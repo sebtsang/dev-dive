@@ -12,7 +12,7 @@ function timeAgo(hours) {
 }
 
 function columnTone(key) {
-  if (key === 'open') {
+  if (key === 'todo') {
     return 'tone-slate'
   }
   if (key === 'in_progress') {
@@ -20,6 +20,9 @@ function columnTone(key) {
   }
   if (key === 'review') {
     return 'tone-amber'
+  }
+  if (key === 'rejected') {
+    return 'tone-rose'
   }
   return 'tone-green'
 }
@@ -65,18 +68,18 @@ function IssueCard({ task, index }) {
 
 export function Issues() {
   const { state } = useDevDive()
-  const openTasks = state.tasks.filter(task => task.status === 'open')
+  const todoTasks = state.tasks.filter(task => task.status === 'todo')
   const inProgressTasks = state.tasks.filter(task => task.status === 'in_progress')
-  const doneTasks = state.tasks.filter(task => task.status === 'done')
-  const reviewIds = new Set((state.commits || []).slice(-3).flatMap(item => item.tasks_updated || []))
-  const inReviewTasks = doneTasks.filter(task => reviewIds.has(task.id))
-  const completedTasks = doneTasks.filter(task => !reviewIds.has(task.id))
+  const reviewTasks = state.tasks.filter(task => task.status === 'review')
+  const rejectedTasks = state.tasks.filter(task => task.status === 'rejected')
+  const completedTasks = state.tasks.filter(task => task.status === 'complete')
   const totalHours = state.tasks.reduce((sum, task) => sum + Number(task.estimate_hours || 0), 0)
   const columns = [
-    { key: 'open', title: 'To Do', tasks: openTasks },
+    { key: 'todo', title: 'To Do', tasks: todoTasks },
     { key: 'in_progress', title: 'In Progress', tasks: inProgressTasks },
-    { key: 'review', title: 'In Review', tasks: inReviewTasks },
-    { key: 'done', title: 'Done', tasks: completedTasks },
+    { key: 'review', title: 'In Review', tasks: reviewTasks },
+    { key: 'rejected', title: 'Rejected', tasks: rejectedTasks },
+    { key: 'complete', title: 'Done', tasks: completedTasks },
   ]
 
   return (
@@ -130,7 +133,7 @@ export function Issues() {
                     <IssueCard task={task} index={index} key={`${column.key}-${task.id}-${task.title}`} />
                   ))
                 )}
-                {column.key === 'open' ? <div class="dashed-card">+ Create Issue</div> : null}
+                {column.key === 'todo' ? <div class="dashed-card">+ Create Issue</div> : null}
               </div>
             </section>
           ))}

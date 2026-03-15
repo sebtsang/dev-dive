@@ -7,14 +7,18 @@ type Project struct {
 }
 
 type Task struct {
-	ID            string   `json:"id"`
-	Title         string   `json:"title"`
-	Description   string   `json:"description"`
-	Status        string   `json:"status"`
-	EstimateHours float64  `json:"estimate_hours"`
-	DesignNotes   string   `json:"design_notes"`
-	IssueURL      string   `json:"issue_url"`
-	Labels        []string `json:"labels"`
+	ID             string   `json:"id"`
+	Title          string   `json:"title"`
+	Description    string   `json:"description"`
+	Status         string   `json:"status"`
+	EstimateHours  float64  `json:"estimate_hours"`
+	DesignNotes    string   `json:"design_notes"`
+	IssueURL       string   `json:"issue_url"`
+	Labels         []string `json:"labels"`
+	Priority       int      `json:"priority"`
+	Advice         string   `json:"advice"`
+	UpdatedAt      string   `json:"updated_at"`
+	AdvicePostedAt string   `json:"advice_posted_at"`
 }
 
 type CI struct {
@@ -36,6 +40,12 @@ type CommitAnalysis struct {
 	AnalysedAt      string   `json:"analysed_at"`
 }
 
+type RemoteStateCommit struct {
+	SHA       string `json:"sha"`
+	Message   string `json:"message"`
+	Timestamp string `json:"timestamp"`
+}
+
 type DriftFinding struct {
 	File       string `json:"file"`
 	Finding    string `json:"finding"`
@@ -48,6 +58,13 @@ type Review struct {
 	Findings   []DriftFinding `json:"findings"`
 }
 
+type SyncState struct {
+	LastIssueSync       string `json:"last_issue_sync"`
+	LastEvaluatedCommit string `json:"last_evaluated_commit"`
+	LastReadmeHash      string `json:"last_readme_hash"`
+	LastReadmeSync      string `json:"last_readme_sync"`
+}
+
 type DevDiveState struct {
 	Meta       map[string]string `json:"meta"`
 	Project    Project           `json:"project"`
@@ -55,6 +72,8 @@ type DevDiveState struct {
 	CI         CI                `json:"ci"`
 	Nudges     []Nudge           `json:"nudges"`
 	Commits    []CommitAnalysis  `json:"commits"`
+	StateCommits []RemoteStateCommit `json:"state_commits"`
 	Reviews    []Review          `json:"reviews"`
 	InitCommit string            `json:"init_commit"`
+	Sync       SyncState         `json:"sync"`
 }

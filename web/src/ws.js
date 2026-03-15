@@ -18,8 +18,15 @@ const initialState = {
   },
   nudges: [],
   commits: [],
+  state_commits: [],
   reviews: [],
   init_commit: '',
+  sync: {
+    last_issue_sync: '',
+    last_evaluated_commit: '',
+    last_readme_hash: '',
+    last_readme_sync: '',
+  },
 }
 
 const WebSocketContext = createContext({

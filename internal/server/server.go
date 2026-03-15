@@ -1,15 +1,20 @@
 package server
 
 import (
+	"context"
+	"encoding/json"
 	"embed"
 	"io/fs"
 	"log"
 	"net/http"
-	"os"
 	"path"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
+	gh "github.com/your-username/devdive/internal/github"
+	"github.com/your-username/devdive/internal/state"
 )
 
 //go:embed dist
@@ -75,11 +80,12 @@ func Start(port string, statePath string, hub *Hub) error {
 		HandleWS(hub, w, r)
 	})
 	mux.HandleFunc("/api/state", func(w http.ResponseWriter, r *http.Request) {
-		data, err := os.ReadFile(statePath)
+		data, err := enrichedStateJSON(r.Context(), statePath)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(data)
 	})
@@ -92,6 +98,13 @@ func Start(port string, statePath string, hub *Hub) error {
 
 		if _, err := fs.Stat(fsys, requestPath); err == nil {
 			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		// Asset requests should fail fast instead of falling back to index.html.
+		// Otherwise browsers receive HTML for missing JS modules and the app boots to a blank page.
+		if path.Ext(requestPath) != "" {
+			http.NotFound(w, r)
 			return
 		}
 
@@ -126,6 +139,47 @@ func serveIndex(w http.ResponseWriter, fsys fs.FS) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write(index)
+}
+
+func enrichedStateJSON(ctx context.Context, statePath string) ([]byte, error) {
+	current, err := state.Load(statePath)
+	if err != nil {
+		return nil, err
+	}
+
+	if repo := strings.TrimSpace(current.Project.Repo); repo != "" {
+		if remoteState, err := gh.GetCurrentState(ctx, repo); err == nil {
+			current = remoteState
+		}
+		if commits, err := gh.ListStateCommits(ctx, repo); err == nil {
+			current.StateCommits = current.StateCommits[:0]
+			for _, commit := range commits {
+				current.StateCommits = append(current.StateCommits, state.RemoteStateCommit{
+					SHA:       commit.SHA,
+					Message:   commit.Message,
+					Timestamp: commit.Timestamp,
+				})
+			}
+			sort.SliceStable(current.StateCommits, func(i, j int) bool {
+				return parseRemoteStateCommitTime(current.StateCommits[i].Timestamp).After(parseRemoteStateCommitTime(current.StateCommits[j].Timestamp))
+			})
+		}
+	}
+
+	data, err := json.Marshal(current)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func parseRemoteStateCommitTime(value string) time.Time {
+	parsed, err := time.Parse(time.RFC3339, strings.TrimSpace(value))
+	if err != nil {
+		return time.Time{}
+	}
+	return parsed
 }

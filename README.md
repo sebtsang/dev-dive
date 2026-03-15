@@ -149,7 +149,10 @@ This builds the CLI binaries into `./bin/`:
 - `./bin/init`
 - `./bin/run`
 - `./bin/sync`
+- `./bin/evaluate`
+- `./bin/readme-sync`
 - `./bin/status`
+- `./bin/priorities`
 - `./bin/review`
 - `./bin/rollback`
 
@@ -232,6 +235,22 @@ Direct binary:
 ./bin/sync
 ```
 
+### `devdive evaluate`
+
+Re-evaluates the current issue board from the latest code changes and git diff without doing a README replan.
+
+```bash
+devdive evaluate
+```
+
+### `devdive readme-sync`
+
+Refreshes the issue board from README changes without doing a full code evaluation pass.
+
+```bash
+devdive readme-sync
+```
+
 ### `devdive status`
 
 Prints current task progress, CI status, recent commit analyses, and open drift findings to the terminal without opening the dashboard.
@@ -244,6 +263,14 @@ Direct binary:
 
 ```bash
 ./bin/status
+```
+
+### `devdive priorities`
+
+Prints the current task board ordered by AI-derived priority.
+
+```bash
+devdive priorities
 ```
 
 ### `devdive review`

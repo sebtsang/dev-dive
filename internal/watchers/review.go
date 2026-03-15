@@ -95,7 +95,10 @@ func RunDesignReviewOnce(ctx context.Context, repoPath string, statePath string)
 		return state.Review{}, err
 	}
 
-	review, err := agent.ReviewDesign(ctx, current, changedFiles)
+	readmeContent, _ := os.ReadFile(filepath.Join(repoPath, "README.md"))
+	recentCommits, _ := recentCommitsForReview(ctx, repoPath)
+
+	review, err := agent.ReviewDesign(ctx, current, string(readmeContent), recentCommits, changedFiles)
 	if err != nil {
 		return state.Review{}, err
 	}
@@ -122,6 +125,16 @@ func RunDesignReviewOnce(ctx context.Context, repoPath string, statePath string)
 
 	_ = gh.CommitState(context.Background(), strings.TrimSpace(os.Getenv("GITHUB_REPO")), statePath, "design review "+time.Now().UTC().Format(time.RFC3339))
 	return review, nil
+}
+
+func recentCommitsForReview(ctx context.Context, repoPath string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", "log", "-10", "--pretty=format:%h %s")
+	cmd.Dir = repoPath
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
 }
 
 func commitsSince(ctx context.Context, repoPath string, initCommit string) (int, error) {

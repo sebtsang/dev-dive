@@ -36,6 +36,20 @@ function recentActivity(state) {
     })
   })
 
+  ;[...(state.state_commits || [])]
+    .sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp))
+    .slice(0, 4)
+    .forEach(item => {
+    events.push({
+      id: `state-commit-${item.sha}`,
+      title: item.message || 'DevDive state synced',
+      body: 'Tracked devdive.json state was committed on GitHub and synced back into the dashboard.',
+      time: item.timestamp,
+      tone: 'green',
+      icon: 'GH',
+    })
+  })
+
   ;(state.nudges || []).slice(-3).forEach(item => {
     events.push({
       id: `nudge-${item.created_at}`,
@@ -79,16 +93,21 @@ function recentActivity(state) {
 
 export function Dashboard() {
   const { state } = useDevDive()
-  const openTasks = state.tasks.filter(task => task.status !== 'done')
+  const activeTasks = state.tasks.filter(task => task.status !== 'complete')
   const inProgress = state.tasks.filter(task => task.status === 'in_progress')
-  const doneTasks = state.tasks.filter(task => task.status === 'done')
+  const reviewTasks = state.tasks.filter(task => task.status === 'review')
+  const rejectedTasks = state.tasks.filter(task => task.status === 'rejected')
+  const completeTasks = state.tasks.filter(task => task.status === 'complete')
   const findings = state.reviews[0]?.findings || []
   const activity = recentActivity(state)
-  const priorityTasks = [...openTasks]
+  const priorityTasks = [...activeTasks]
     .sort((left, right) => {
-      const leftRank = left.status === 'in_progress' ? 0 : 1
-      const rightRank = right.status === 'in_progress' ? 0 : 1
-      return leftRank - rightRank
+      const leftPriority = Number(left.priority || 5)
+      const rightPriority = Number(right.priority || 5)
+      if (leftPriority === rightPriority) {
+        return left.title.localeCompare(right.title)
+      }
+      return leftPriority - rightPriority
     })
     .slice(0, 3)
 
@@ -115,8 +134,8 @@ export function Dashboard() {
             <div class="metric-icon metric-icon--blue">OI</div>
           </div>
           <div class="metric-card__value">
-            {openTasks.length}
-            <span class="metric-card__delta metric-card__delta--up">{doneTasks.length} closed</span>
+            {activeTasks.length}
+            <span class="metric-card__delta metric-card__delta--up">{completeTasks.length} complete</span>
           </div>
         </article>
         <article class="metric-card">
@@ -126,7 +145,7 @@ export function Dashboard() {
           </div>
           <div class="metric-card__value">
             {inProgress.length}
-            <span class="metric-card__delta">{state.tasks.length} total tasks</span>
+            <span class="metric-card__delta">{reviewTasks.length} in review</span>
           </div>
         </article>
         <article class="metric-card">
@@ -136,7 +155,7 @@ export function Dashboard() {
           </div>
           <div class="metric-card__value">
             {state.nudges.length}
-            <span class="metric-card__delta">{findings.length} active review findings</span>
+            <span class="metric-card__delta">{rejectedTasks.length} rejected tasks</span>
           </div>
         </article>
         <article class="metric-card">
@@ -187,8 +206,17 @@ export function Dashboard() {
           ) : (
             <div class="priority-list">
               {priorityTasks.map((task, index) => {
-                const tone = task.status === 'in_progress' ? 'tone-blue' : index === 0 ? 'tone-rose' : 'tone-slate'
-                const label = task.status === 'in_progress' ? 'In Progress' : index === 0 ? 'High Priority' : 'Backlog'
+                const tone =
+                  task.status === 'in_progress' ? 'tone-blue'
+                    : task.status === 'review' ? 'tone-amber'
+                      : task.status === 'rejected' ? 'tone-rose'
+                        : index === 0 ? 'tone-purple'
+                          : 'tone-slate'
+                const label =
+                  task.status === 'in_progress' ? 'In Progress'
+                    : task.status === 'review' ? 'Needs Review'
+                      : task.status === 'rejected' ? 'Rejected'
+                        : `Priority ${task.priority || index + 1}`
 
                 return (
                   <article class="priority-card" key={task.id || task.title}>
@@ -197,7 +225,7 @@ export function Dashboard() {
                       <StatusBadge status={task.status} />
                     </div>
                     <h3 class="priority-title">{task.title}</h3>
-                    <p class="card-copy">{task.design_notes}</p>
+                    <p class="card-copy">{task.advice || task.design_notes}</p>
                     <div class="issue-meta">
                       <span>{Number(task.estimate_hours || 0).toFixed(1)}h estimate</span>
                       <span>{task.id ? `#${task.id}` : 'Untracked'}</span>

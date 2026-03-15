@@ -27,6 +27,7 @@ type Issue struct {
 	Number  int    `json:"number"`
 	State   string `json:"state"`
 	HTMLURL string `json:"html_url"`
+	Title   string `json:"title"`
 }
 
 func EnsureRepo(ctx context.Context, repo string, fallbackName string) (Repository, error) {
@@ -156,6 +157,42 @@ func CreateIssue(ctx context.Context, repo string, task state.Task) (int, string
 		return 0, "", err
 	}
 	return payload.Number, payload.HTMLURL, nil
+}
+
+func UpdateIssue(ctx context.Context, repo string, issueNumber string, task state.Task) error {
+	labels := append([]string{}, task.Labels...)
+	labels = append(labels, "devdive", fmt.Sprintf("estimate:%.0fh", task.EstimateHours))
+
+	body := map[string]any{
+		"title":  task.Title,
+		"body":   task.Description + "\n\n> " + task.DesignNotes,
+		"labels": labels,
+	}
+
+	resp, err := githubRequest(ctx, http.MethodPatch, fmt.Sprintf("/repos/%s/issues/%s", repo, strings.TrimSpace(issueNumber)), body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return expectStatus(resp, http.StatusOK)
+}
+
+func CommentOnIssue(ctx context.Context, repo string, issueNumber string, message string) error {
+	message = strings.TrimSpace(message)
+	if message == "" {
+		return nil
+	}
+
+	resp, err := githubRequest(ctx, http.MethodPost, fmt.Sprintf("/repos/%s/issues/%s/comments", repo, strings.TrimSpace(issueNumber)), map[string]string{
+		"body": message,
+	})
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return expectStatus(resp, http.StatusCreated)
 }
 
 func GetIssue(ctx context.Context, repo string, issueNumber string) (Issue, error) {

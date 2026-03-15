@@ -11,7 +11,10 @@ $targets = @(
     @{ Name = "init"; Path = "./cmd/init" },
     @{ Name = "run"; Path = "./cmd/run" },
     @{ Name = "sync"; Path = "./cmd/sync" },
+    @{ Name = "evaluate"; Path = "./cmd/evaluate" },
+    @{ Name = "readme-sync"; Path = "./cmd/readme-sync" },
     @{ Name = "status"; Path = "./cmd/status" },
+    @{ Name = "priorities"; Path = "./cmd/priorities" },
     @{ Name = "review"; Path = "./cmd/review" },
     @{ Name = "rollback"; Path = "./cmd/rollback" }
 )

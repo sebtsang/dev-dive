@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/sha1"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -14,6 +15,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -37,6 +39,12 @@ var (
 	successStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("10"))
 	mutedStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 )
+
+type syncOptions struct {
+	syncIssues    bool
+	syncReadme    bool
+	evaluateDiffs bool
+}
 
 func NewRootCommand() *cobra.Command {
 	var statePath string
@@ -73,6 +81,20 @@ func NewRootCommand() *cobra.Command {
 		},
 	}
 
+	evaluateCmd := &cobra.Command{
+		Use: "evaluate",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return ExecuteEvaluate(cmd.Context(), statePath)
+		},
+	}
+
+	readmeSyncCmd := &cobra.Command{
+		Use: "readme-sync",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return ExecuteReadmeSync(cmd.Context(), statePath)
+		},
+	}
+
 	statusCmd := &cobra.Command{
 		Use: "status",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -87,6 +109,13 @@ func NewRootCommand() *cobra.Command {
 		},
 	}
 
+	prioritiesCmd := &cobra.Command{
+		Use: "priorities",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return ExecutePriorities(cmd.Context(), statePath)
+		},
+	}
+
 	rollbackCmd := &cobra.Command{
 		Use: "rollback",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -95,7 +124,7 @@ func NewRootCommand() *cobra.Command {
 	}
 	rollbackCmd.Flags().StringVar(&rollbackSHA, "sha", "", "git SHA to roll back devdive.json to")
 
-	rootCmd.AddCommand(initCmd, runCmd, syncCmd, statusCmd, reviewCmd, rollbackCmd)
+	rootCmd.AddCommand(initCmd, runCmd, syncCmd, evaluateCmd, readmeSyncCmd, statusCmd, reviewCmd, prioritiesCmd, rollbackCmd)
 	return rootCmd
 }
 
@@ -164,28 +193,49 @@ func ExecuteInit(parent context.Context, statePath string, fromReadme bool, args
 		return err
 	}
 
-	tasks, err := agent.PlanFeature(ctx, prompt, summary)
-	if err != nil {
-		return err
-	}
 	if err := gh.EnsureLabelsExist(ctx, repo); err != nil {
 		return err
 	}
 
-	for i := range tasks {
-		number, issueURL, err := gh.CreateIssue(ctx, repo, tasks[i])
+	var existing state.DevDiveState
+	if current, err := state.Load(statePath); err == nil {
+		existing = current
+	}
+
+	recentCommits, err := recentCommitLog(ctx, ".", 12)
+	if err != nil {
+		recentCommits = ""
+	}
+
+	var tasks []state.Task
+	if localGitInitialised && len(existing.Tasks) > 0 {
+		planned, err := agent.PlanFeatureRefresh(ctx, prompt, summary, existing, recentCommits)
 		if err != nil {
 			return err
 		}
-		tasks[i].ID = fmt.Sprintf("%d", number)
-		tasks[i].IssueURL = issueURL
-		tasks[i].Status = "open"
+		tasks = mergePlannedTasks(existing.Tasks, planned)
+	} else {
+		tasks, err = agent.PlanFeature(ctx, prompt, summary)
+		if err != nil {
+			return err
+		}
+		for i := range tasks {
+			tasks[i].Status = "todo"
+			tasks[i].Priority = normalizePriority(tasks[i].Priority, i)
+			tasks[i].UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+		}
 	}
 
 	headSHA, err := gitHeadSHA(ctx, ".")
 	if err != nil {
 		return err
 	}
+
+	if err := createOrUpdateTasksOnGitHub(ctx, repo, tasks); err != nil {
+		return err
+	}
+
+	readmeHash, _ := hashFile("README.md")
 
 	current := state.DevDiveState{
 		Meta: map[string]string{"version": "1.0"},
@@ -198,8 +248,15 @@ func ExecuteInit(parent context.Context, statePath string, fromReadme bool, args
 		CI:         state.CI{Status: "unknown"},
 		Nudges:     []state.Nudge{},
 		Commits:    []state.CommitAnalysis{},
+		StateCommits: []state.RemoteStateCommit{},
 		Reviews:    []state.Review{},
 		InitCommit: headSHA,
+		Sync: state.SyncState{
+			LastIssueSync:       time.Now().UTC().Format(time.RFC3339),
+			LastEvaluatedCommit: headSHA,
+			LastReadmeHash:      readmeHash,
+			LastReadmeSync:      time.Now().UTC().Format(time.RFC3339),
+		},
 	}
 
 	if err := state.Save(statePath, current); err != nil {
@@ -217,61 +274,160 @@ func ExecuteRun(parent context.Context, statePath string) error {
 	if err := loadDotEnvIfPresent(); err != nil {
 		return err
 	}
-	if _, err := os.Stat(statePath); err != nil {
+	resolvedStatePath, repoPath, err := resolveProjectPaths(statePath)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(resolvedStatePath); err != nil {
 		return err
 	}
 
-	repo, err := resolveRepo(statePath)
+	repo, err := resolveRepo(resolvedStatePath)
 	if err != nil {
 		return err
 	}
 	configureCommitHook(repo)
+	if err := refreshLocalStateFromGitHub(parent, resolvedStatePath, repo); err != nil {
+		return err
+	}
 
-	if err := ExecuteSync(parent, statePath); err != nil {
+	if err := ExecuteSync(parent, resolvedStatePath); err != nil {
 		return err
 	}
 
 	ctx, stop := signal.NotifyContext(parent, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	return runDashboard(ctx, repo, ".", statePath)
+	return runDashboard(ctx, repo, repoPath, resolvedStatePath)
 }
 
 func ExecuteSync(parent context.Context, statePath string) error {
-	if err := loadDotEnvIfPresent(); err != nil {
-		return err
-	}
-	if _, err := os.Stat(statePath); err != nil {
-		return err
-	}
-
-	repo, err := resolveRepo(statePath)
-	if err != nil {
-		return err
-	}
-
-	changed, err := syncGitHubIssueStatuses(parent, repo, statePath)
+	changed, err := executeSyncMode(parent, statePath, syncOptions{
+		syncIssues:    true,
+		syncReadme:    true,
+		evaluateDiffs: true,
+	}, false)
 	if err != nil {
 		return err
 	}
 	if changed {
-		fmt.Println(successStyle.Render("Synced task statuses from GitHub issues."))
+		fmt.Println(successStyle.Render("Project state refreshed."))
 	} else {
-		fmt.Println(mutedStyle.Render("Already in sync with GitHub issues."))
+		fmt.Println(mutedStyle.Render("No project state changes detected."))
 	}
 	return nil
 }
 
-func ExecuteStatus(parent context.Context, statePath string) error {
-	if err := ExecuteSync(parent, statePath); err != nil {
-		return err
-	}
-
-	current, err := state.Load(statePath)
+func ExecuteEvaluate(parent context.Context, statePath string) error {
+	changed, err := executeSyncMode(parent, statePath, syncOptions{
+		syncIssues:    true,
+		syncReadme:    false,
+		evaluateDiffs: true,
+	}, false)
 	if err != nil {
 		return err
 	}
-	fmt.Println(renderStatus(current))
+	if changed {
+		fmt.Println(successStyle.Render("YES: evaluation changed project state."))
+	} else {
+		fmt.Println(mutedStyle.Render("NO: evaluation found no task changes."))
+	}
+	return nil
+}
+
+func ExecuteReadmeSync(parent context.Context, statePath string) error {
+	changed, err := executeSyncMode(parent, statePath, syncOptions{
+		syncIssues:    false,
+		syncReadme:    true,
+		evaluateDiffs: false,
+	}, false)
+	if err != nil {
+		return err
+	}
+	if changed {
+		fmt.Println(successStyle.Render("README sync updated project state."))
+	} else {
+		fmt.Println(mutedStyle.Render("README sync found no changes."))
+	}
+	return nil
+}
+
+func executeSyncMode(parent context.Context, statePath string, options syncOptions, printResult bool) (bool, error) {
+	if err := loadDotEnvIfPresent(); err != nil {
+		return false, err
+	}
+	resolvedStatePath, repoPath, err := resolveProjectPaths(statePath)
+	if err != nil {
+		return false, err
+	}
+	if _, err := os.Stat(resolvedStatePath); err != nil {
+		return false, err
+	}
+
+	repo, err := resolveRepo(resolvedStatePath)
+	if err != nil {
+		return false, err
+	}
+	configureCommitHook(repo)
+	if err := refreshLocalStateFromGitHub(parent, resolvedStatePath, repo); err != nil {
+		return false, err
+	}
+
+	changed, err := syncProjectState(parent, repo, repoPath, resolvedStatePath, options)
+	if err != nil {
+		return false, err
+	}
+	if printResult {
+		if changed {
+			fmt.Println(successStyle.Render("Project state refreshed."))
+		} else {
+			fmt.Println(mutedStyle.Render("No project state changes detected."))
+		}
+	}
+	return changed, nil
+}
+
+func ExecuteStatus(parent context.Context, statePath string) error {
+	resolvedStatePath, _, err := resolveProjectPaths(statePath)
+	if err != nil {
+		return err
+	}
+	if err := ExecuteSync(parent, resolvedStatePath); err != nil {
+		return err
+	}
+
+	current, err := state.Load(resolvedStatePath)
+	if err != nil {
+		return err
+	}
+
+	liveStateCommits, err := recentRemoteStateCommits(parent, strings.TrimSpace(current.Project.Repo), 3)
+	if err != nil {
+		liveStateCommits = nil
+	}
+
+	fmt.Println(renderStatus(current, liveStateCommits))
+	return nil
+}
+
+func ExecutePriorities(parent context.Context, statePath string) error {
+	resolvedStatePath, _, err := resolveProjectPaths(statePath)
+	if err != nil {
+		return err
+	}
+	if _, err := executeSyncMode(parent, resolvedStatePath, syncOptions{
+		syncIssues:    true,
+		syncReadme:    false,
+		evaluateDiffs: true,
+	}, false); err != nil {
+		return err
+	}
+
+	current, err := state.Load(resolvedStatePath)
+	if err != nil {
+		return err
+	}
+	fmt.Println(renderPriorities(current.Tasks))
 	return nil
 }
 
@@ -279,11 +435,15 @@ func ExecuteReview(parent context.Context, statePath string) error {
 	if err := loadDotEnvIfPresent(); err != nil {
 		return err
 	}
-	if _, err := os.Stat(statePath); err != nil {
+	resolvedStatePath, repoPath, err := resolveProjectPaths(statePath)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(resolvedStatePath); err != nil {
 		return err
 	}
 
-	repo, err := resolveRepo(statePath)
+	repo, err := resolveRepo(resolvedStatePath)
 	if err != nil {
 		return err
 	}
@@ -291,8 +451,19 @@ func ExecuteReview(parent context.Context, statePath string) error {
 
 	ctx, stop := signal.NotifyContext(parent, os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if err := refreshLocalStateFromGitHub(ctx, resolvedStatePath, repo); err != nil {
+		return err
+	}
 
-	review, err := watchers.RunDesignReviewOnce(ctx, ".", statePath)
+	if _, err := syncProjectState(ctx, repo, repoPath, resolvedStatePath, syncOptions{
+		syncIssues:    true,
+		syncReadme:    false,
+		evaluateDiffs: true,
+	}); err != nil {
+		return err
+	}
+
+	review, err := watchers.RunDesignReviewOnce(ctx, repoPath, resolvedStatePath)
 	if err != nil {
 		return err
 	}
@@ -620,13 +791,95 @@ func repoFromLocalState(statePath string) (string, error) {
 	return strings.TrimSpace(current.Project.Repo), nil
 }
 
-func syncGitHubIssueStatuses(ctx context.Context, repo string, statePath string) (bool, error) {
+func syncProjectState(ctx context.Context, repo string, repoPath string, statePath string, options syncOptions) (bool, error) {
 	current, err := state.Load(statePath)
 	if err != nil {
 		return false, err
 	}
 
 	changed := false
+	if options.syncIssues {
+		statusChanged, err := syncGitHubIssueStatuses(ctx, repo, &current)
+		if err != nil {
+			return false, err
+		}
+		changed = changed || statusChanged
+	}
+
+	readmeContent, _ := os.ReadFile(filepath.Join(repoPath, "README.md"))
+	readmeHash := hashBytes(readmeContent)
+	if options.syncReadme && readmeHash != "" && readmeHash != current.Sync.LastReadmeHash {
+		summary, err := scanner.Summarise(repoPath)
+		if err != nil {
+			return false, err
+		}
+		recentCommits, _ := recentCommitLog(ctx, repoPath, 12)
+		planned, err := agent.PlanFeatureRefresh(ctx, string(readmeContent), summary, current, recentCommits)
+		if err != nil {
+			return false, err
+		}
+		current.Tasks = mergePlannedTasks(current.Tasks, planned)
+		if err := createOrUpdateTasksOnGitHub(ctx, repo, current.Tasks); err != nil {
+			return false, err
+		}
+		current.Sync.LastReadmeHash = readmeHash
+		current.Sync.LastReadmeSync = time.Now().UTC().Format(time.RFC3339)
+		changed = true
+	}
+
+	headSHA, err := gitHeadSHA(ctx, repoPath)
+	if options.evaluateDiffs && err == nil && strings.TrimSpace(headSHA) != "" && headSHA != current.Sync.LastEvaluatedCommit {
+		diff, err := gitDiffSince(ctx, repoPath, current.Sync.LastEvaluatedCommit)
+		if err != nil {
+			return false, err
+		}
+		summary, err := scanner.Summarise(repoPath)
+		if err != nil {
+			return false, err
+		}
+		evaluation, err := agent.EvaluateProjectTasks(ctx, string(readmeContent), summary, diff, current.Tasks)
+		if err != nil {
+			return false, err
+		}
+		applyTaskUpdates(&current, evaluation.Updates)
+		created, err := createFollowUpIssues(ctx, repo, &current, evaluation.FollowUps)
+		if err != nil {
+			return false, err
+		}
+		commented, err := applyTaskAdviceComments(ctx, repo, current.Tasks)
+		if err != nil {
+			return false, err
+		}
+		changed = changed || created || commented || len(evaluation.Updates) > 0
+		if evaluation.ShouldReplan {
+			message := evaluation.ReplanReason
+			if strings.TrimSpace(message) == "" {
+				message = "README or implementation drift suggests the issue board should be refreshed."
+			}
+			if err := appendUniqueNudge(&current, message); err == nil {
+				changed = true
+			}
+		}
+		current.Sync.LastEvaluatedCommit = headSHA
+	}
+
+	if staleChanged := addStaleProgressNudges(&current); staleChanged {
+		changed = true
+	}
+
+	current.Sync.LastIssueSync = time.Now().UTC().Format(time.RFC3339)
+	if !changed {
+		return false, nil
+	}
+	if err := state.Save(statePath, current); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func syncGitHubIssueStatuses(ctx context.Context, repo string, current *state.DevDiveState) (bool, error) {
+	changed := false
+	now := time.Now().UTC().Format(time.RFC3339)
 	for i := range current.Tasks {
 		issueNumber := strings.TrimSpace(current.Tasks[i].ID)
 		if issueNumber == "" {
@@ -647,23 +900,50 @@ func syncGitHubIssueStatuses(ctx context.Context, repo string, statePath string)
 		nextStatus := current.Tasks[i].Status
 		switch strings.ToLower(strings.TrimSpace(issue.State)) {
 		case "closed":
-			nextStatus = "done"
+			nextStatus = "complete"
 		case "open":
-			if current.Tasks[i].Status == "done" {
-				nextStatus = "open"
+			if current.Tasks[i].Status == "complete" {
+				nextStatus = "todo"
 			}
 		}
 
 		if nextStatus != current.Tasks[i].Status {
 			current.Tasks[i].Status = nextStatus
+			current.Tasks[i].UpdatedAt = now
 			changed = true
 		}
 	}
+	return changed, nil
+}
 
-	if !changed {
-		return false, nil
+func recentRemoteStateCommits(ctx context.Context, repo string, limit int) ([]state.RemoteStateCommit, error) {
+	if strings.TrimSpace(repo) == "" {
+		return nil, nil
 	}
-	return true, state.Save(statePath, current)
+
+	commits, err := gh.ListStateCommits(ctx, repo)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	next := make([]state.RemoteStateCommit, 0, len(commits))
+	for _, commit := range commits {
+		next = append(next, state.RemoteStateCommit{
+			SHA:       commit.SHA,
+			Message:   commit.Message,
+			Timestamp: commit.Timestamp,
+		})
+	}
+	sort.SliceStable(next, func(i, j int) bool {
+		return remoteStateCommitTime(next[i]).After(remoteStateCommitTime(next[j]))
+	})
+	if limit > 0 && len(next) > limit {
+		next = next[:limit]
+	}
+	return next, nil
 }
 
 func issueNumberFromURL(issueURL string) string {
@@ -676,6 +956,280 @@ func issueNumberFromURL(issueURL string) string {
 		return ""
 	}
 	return strings.TrimSpace(parts[len(parts)-1])
+}
+
+func recentCommitLog(ctx context.Context, repoPath string, count int) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", "log", fmt.Sprintf("-%d", count), "--pretty=format:%h %s", "--", ".")
+	cmd.Dir = repoPath
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+func gitDiffSince(ctx context.Context, repoPath string, since string) (string, error) {
+	args := []string{"show", "--format=", "--root", "HEAD"}
+	if strings.TrimSpace(since) != "" {
+		args = []string{"diff", since, "HEAD"}
+	}
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd.Dir = repoPath
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return string(output), nil
+}
+
+func hashFile(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", nil
+		}
+		return "", err
+	}
+	return hashBytes(data), nil
+}
+
+func hashBytes(data []byte) string {
+	if len(data) == 0 {
+		return ""
+	}
+	sum := sha1.Sum(data)
+	return fmt.Sprintf("%x", sum[:])
+}
+
+func mergePlannedTasks(existing []state.Task, planned []state.Task) []state.Task {
+	existingByTitle := map[string]state.Task{}
+	used := map[string]bool{}
+	for _, task := range existing {
+		existingByTitle[normalizeTaskKey(task.Title)] = task
+	}
+
+	merged := make([]state.Task, 0, len(planned))
+	now := time.Now().UTC().Format(time.RFC3339)
+	for i, task := range planned {
+		key := normalizeTaskKey(task.Title)
+		task.Priority = normalizePriority(task.Priority, i)
+		task.Status = normalizeBoardStatus(task.Status)
+		if task.Status == "" {
+			task.Status = "todo"
+		}
+		if task.UpdatedAt == "" {
+			task.UpdatedAt = now
+		}
+		if existingTask, ok := existingByTitle[key]; ok {
+			task.ID = existingTask.ID
+			task.IssueURL = existingTask.IssueURL
+			if task.Status == "todo" && strings.TrimSpace(existingTask.Status) != "" {
+				task.Status = normalizeBoardStatus(existingTask.Status)
+			}
+			if task.Advice == "" {
+				task.Advice = existingTask.Advice
+			}
+			if task.UpdatedAt == "" {
+				task.UpdatedAt = existingTask.UpdatedAt
+			}
+			used[key] = true
+		}
+		merged = append(merged, task)
+	}
+
+	for _, task := range existing {
+		key := normalizeTaskKey(task.Title)
+		if used[key] {
+			continue
+		}
+		task.Status = "rejected"
+		task.Priority = 5
+		task.Advice = "This task no longer appears aligned with the latest README intent and should be reviewed."
+		task.UpdatedAt = now
+		merged = append(merged, task)
+	}
+	return merged
+}
+
+func createOrUpdateTasksOnGitHub(ctx context.Context, repo string, tasks []state.Task) error {
+	for i := range tasks {
+		if strings.TrimSpace(tasks[i].ID) == "" {
+			number, issueURL, err := gh.CreateIssue(ctx, repo, tasks[i])
+			if err != nil {
+				return err
+			}
+			tasks[i].ID = fmt.Sprintf("%d", number)
+			tasks[i].IssueURL = issueURL
+			continue
+		}
+		if err := gh.UpdateIssue(ctx, repo, tasks[i].ID, tasks[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func applyTaskUpdates(current *state.DevDiveState, updates []agent.TaskUpdate) {
+	if len(updates) == 0 {
+		return
+	}
+	byID := map[string]int{}
+	for i := range current.Tasks {
+		byID[current.Tasks[i].ID] = i
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	for _, update := range updates {
+		index, ok := byID[update.ID]
+		if !ok {
+			continue
+		}
+		current.Tasks[index].Status = normalizeBoardStatus(update.Status)
+		current.Tasks[index].Priority = normalizePriority(update.Priority, index)
+		if strings.TrimSpace(update.Advice) != "" {
+			if strings.TrimSpace(current.Tasks[index].Advice) != strings.TrimSpace(update.Advice) {
+				current.Tasks[index].AdvicePostedAt = ""
+			}
+			current.Tasks[index].Advice = update.Advice
+		}
+		current.Tasks[index].UpdatedAt = now
+	}
+}
+
+func createFollowUpIssues(ctx context.Context, repo string, current *state.DevDiveState, followUps []agent.FollowUpIssue) (bool, error) {
+	if len(followUps) == 0 {
+		return false, nil
+	}
+	changed := false
+	now := time.Now().UTC().Format(time.RFC3339)
+	for _, followUp := range followUps {
+		if strings.TrimSpace(followUp.Title) == "" {
+			continue
+		}
+		task := state.Task{
+			Title:         followUp.Title,
+			Description:   followUp.Body,
+			Status:        "todo",
+			EstimateHours: 2,
+			DesignNotes:   "Follow-up issue generated from implementation review.",
+			Labels:        nonNilStrings(followUp.Labels),
+			Priority:      2,
+			UpdatedAt:     now,
+		}
+		number, issueURL, err := gh.CreateIssue(ctx, repo, task)
+		if err != nil {
+			return changed, err
+		}
+		task.ID = fmt.Sprintf("%d", number)
+		task.IssueURL = issueURL
+		current.Tasks = append(current.Tasks, task)
+		changed = true
+	}
+	return changed, nil
+}
+
+func applyTaskAdviceComments(ctx context.Context, repo string, tasks []state.Task) (bool, error) {
+	changed := false
+	now := time.Now().UTC().Format(time.RFC3339)
+	for i := range tasks {
+		if strings.TrimSpace(tasks[i].Advice) == "" || strings.TrimSpace(tasks[i].ID) == "" {
+			continue
+		}
+		if strings.TrimSpace(tasks[i].AdvicePostedAt) != "" {
+			continue
+		}
+		if err := gh.CommentOnIssue(ctx, repo, tasks[i].ID, "DevDive guidance: "+tasks[i].Advice); err != nil {
+			return changed, err
+		}
+		tasks[i].AdvicePostedAt = now
+		changed = true
+	}
+	return changed, nil
+}
+
+func appendUniqueNudge(current *state.DevDiveState, message string) error {
+	message = strings.TrimSpace(message)
+	if message == "" {
+		return nil
+	}
+	for _, nudge := range current.Nudges {
+		if strings.TrimSpace(nudge.Message) == message {
+			return nil
+		}
+	}
+	current.Nudges = append(current.Nudges, state.Nudge{
+		Message:   message,
+		CreatedAt: time.Now().UTC().Format(time.RFC3339),
+	})
+	return nil
+}
+
+func addStaleProgressNudges(current *state.DevDiveState) bool {
+	changed := false
+	for _, task := range current.Tasks {
+		if task.Status != "in_progress" && task.Status != "review" {
+			continue
+		}
+		updatedAt, err := time.Parse(time.RFC3339, task.UpdatedAt)
+		if err != nil {
+			continue
+		}
+		threshold := time.Duration(maxFloat(task.EstimateHours, 2)*float64(time.Hour)) * 24
+		if time.Since(updatedAt) < threshold {
+			continue
+		}
+		message := fmt.Sprintf("%s looks stale. Check in on progress and decide whether it should move to review or be split.", task.Title)
+		before := len(current.Nudges)
+		_ = appendUniqueNudge(current, message)
+		if len(current.Nudges) > before {
+			changed = true
+		}
+	}
+	return changed
+}
+
+func normalizeTaskKey(value string) string {
+	return strings.ToLower(strings.TrimSpace(value))
+}
+
+func normalizeBoardStatus(status string) string {
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "", "open", "todo":
+		return "todo"
+	case "in_progress", "in progress":
+		return "in_progress"
+	case "review":
+		return "review"
+	case "rejected":
+		return "rejected"
+	case "done", "complete", "completed":
+		return "complete"
+	default:
+		return "todo"
+	}
+}
+
+func normalizePriority(priority int, index int) int {
+	if priority >= 1 && priority <= 5 {
+		return priority
+	}
+	if index < 3 {
+		return index + 1
+	}
+	return 4
+}
+
+func maxFloat(a float64, b float64) float64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func nonNilStrings(values []string) []string {
+	if values == nil {
+		return []string{}
+	}
+	return values
 }
 
 func promptForInitDecision() string {
@@ -777,6 +1331,40 @@ func resolveRepo(statePath string) (string, error) {
 		return "", fmt.Errorf("GITHUB_REPO is not set and no repo is stored in state")
 	}
 	return repo, nil
+}
+
+func refreshLocalStateFromGitHub(ctx context.Context, statePath string, repo string) error {
+	if strings.TrimSpace(repo) == "" {
+		return nil
+	}
+
+	current, err := gh.GetCurrentState(ctx, repo)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+
+	return state.SaveWithoutCommit(statePath, current)
+}
+
+func resolveProjectPaths(statePath string) (string, string, error) {
+	resolvedStatePath, err := filepath.Abs(statePath)
+	if err != nil {
+		return "", "", err
+	}
+
+	projectDir := filepath.Dir(resolvedStatePath)
+	repoPath, err := gitTopLevel(context.Background(), projectDir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return resolvedStatePath, projectDir, nil
+		}
+		return "", "", err
+	}
+
+	return resolvedStatePath, repoPath, nil
 }
 
 func runDashboard(ctx context.Context, repo string, repoPath string, statePath string) error {
@@ -994,14 +1582,14 @@ func renderInitSummary(tasks []state.Task) string {
 	return strings.Join(lines, "\n")
 }
 
-func renderStatus(current state.DevDiveState) string {
+func renderStatus(current state.DevDiveState, liveStateCommits []state.RemoteStateCommit) string {
 	var lines []string
 	lines = append(lines, titleStyle.Render(current.Project.Name))
 	lines = append(lines, mutedStyle.Render(current.Project.Repo))
 	lines = append(lines, "")
 	lines = append(lines, headerStyle.Render("Tasks"))
 	for _, task := range current.Tasks {
-		lines = append(lines, fmt.Sprintf("%-32s %-12s %5.1fh %s", truncateLabel(task.Title, 32), task.Status, task.EstimateHours, task.IssueURL))
+		lines = append(lines, fmt.Sprintf("P%-1d %-28s %-12s %5.1fh %s", normalizePriority(task.Priority, 3), truncateLabel(task.Title, 28), task.Status, task.EstimateHours, task.IssueURL))
 	}
 
 	lines = append(lines, "")
@@ -1018,12 +1606,12 @@ func renderStatus(current state.DevDiveState) string {
 	}
 
 	lines = append(lines, "")
-	lines = append(lines, headerStyle.Render("Recent Commit Analysis"))
-	for _, commit := range tailCommits(current.Commits, 3) {
-		lines = append(lines, fmt.Sprintf("- %s (%s)", commit.Summary, commit.CommitHash))
+	lines = append(lines, headerStyle.Render("Recent GitHub State Commits"))
+	for _, commit := range tailStateCommits(liveStateCommits, 3) {
+		lines = append(lines, fmt.Sprintf("- %s (%s)", commit.Message, truncateLabel(commit.SHA, 7)))
 	}
-	if len(current.Commits) == 0 {
-		lines = append(lines, mutedStyle.Render("No commits analysed yet"))
+	if len(liveStateCommits) == 0 {
+		lines = append(lines, mutedStyle.Render("No synced DevDive state commits yet"))
 	}
 
 	lines = append(lines, "")
@@ -1052,6 +1640,31 @@ func renderReview(review state.Review) string {
 	return strings.Join(lines, "\n")
 }
 
+func renderPriorities(tasks []state.Task) string {
+	if len(tasks) == 0 {
+		return mutedStyle.Render("No tasks available.")
+	}
+
+	sorted := append([]state.Task(nil), tasks...)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		if sorted[i].Priority == sorted[j].Priority {
+			return strings.ToLower(sorted[i].Title) < strings.ToLower(sorted[j].Title)
+		}
+		return sorted[i].Priority < sorted[j].Priority
+	})
+
+	var lines []string
+	lines = append(lines, titleStyle.Render("Priority List"))
+	lines = append(lines, "")
+	for _, task := range sorted {
+		lines = append(lines, fmt.Sprintf("P%d %-28s %-12s %s", normalizePriority(task.Priority, 3), truncateLabel(task.Title, 28), task.Status, task.IssueURL))
+		if strings.TrimSpace(task.Advice) != "" {
+			lines = append(lines, "  "+truncateLabel(task.Advice, 120))
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
 func tailNudges(items []state.Nudge, count int) []state.Nudge {
 	if len(items) <= count {
 		return items
@@ -1064,6 +1677,63 @@ func tailCommits(items []state.CommitAnalysis, count int) []state.CommitAnalysis
 		return items
 	}
 	return items[len(items)-count:]
+}
+
+func tailStateCommits(items []state.RemoteStateCommit, count int) []state.RemoteStateCommit {
+	sorted := append([]state.RemoteStateCommit(nil), items...)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		return remoteStateCommitTime(sorted[i]).After(remoteStateCommitTime(sorted[j]))
+	})
+	if len(sorted) <= count {
+		return sorted
+	}
+	return sorted[:count]
+}
+
+func remoteStateCommitTime(item state.RemoteStateCommit) time.Time {
+	parsed, err := time.Parse(time.RFC3339, strings.TrimSpace(item.Timestamp))
+	if err != nil {
+		return time.Time{}
+	}
+	return parsed
+}
+
+func recentRepositoryCommits(ctx context.Context, repoPath string, limit int) ([]string, error) {
+	if limit <= 0 {
+		return nil, nil
+	}
+
+	format := "%h %s"
+	cmd := exec.CommandContext(ctx, "git", "log", fmt.Sprintf("-%d", limit), "--pretty=format:"+format)
+	cmd.Dir = repoPath
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+
+	var commits []string
+	for _, line := range strings.Split(strings.TrimSpace(string(output)), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		commits = append(commits, line)
+	}
+	return commits, nil
+}
+
+func gitTopLevel(ctx context.Context, dir string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--show-toplevel")
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if strings.Contains(string(output), "not a git repository") {
+			return "", os.ErrNotExist
+		}
+		return "", fmt.Errorf("git rev-parse --show-toplevel failed: %w: %s", err, strings.TrimSpace(string(output)))
+	}
+
+	return filepath.Clean(strings.TrimSpace(string(output))), nil
 }
 
 func truncateLabel(value string, max int) string {

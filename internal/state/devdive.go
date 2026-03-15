@@ -33,6 +33,12 @@ func Save(path string, current DevDiveState) error {
 	return saveUnlocked(path, current)
 }
 
+func SaveWithoutCommit(path string, current DevDiveState) error {
+	fileMu.Lock()
+	defer fileMu.Unlock()
+	return writeUnlocked(path, current)
+}
+
 func UpdateTaskStatus(path string, id string, status string) error {
 	return mutate(path, "task status update", func(current *DevDiveState) error {
 		for i := range current.Tasks {
@@ -113,6 +119,22 @@ func loadUnlocked(path string) (DevDiveState, error) {
 }
 
 func saveUnlocked(path string, current DevDiveState, messages ...string) error {
+	if err := writeUnlocked(path, current); err != nil {
+		return err
+	}
+
+	if commitHook != nil {
+		message := "state update"
+		if len(messages) > 0 && messages[0] != "" {
+			message = messages[0]
+		}
+		commitHook(path, message)
+	}
+
+	return nil
+}
+
+func writeUnlocked(path string, current DevDiveState) error {
 	data, err := json.MarshalIndent(current, "", "  ")
 	if err != nil {
 		return err
@@ -125,14 +147,5 @@ func saveUnlocked(path string, current DevDiveState, messages ...string) error {
 	if err := os.Rename(tmpPath, path); err != nil {
 		return err
 	}
-
-	if commitHook != nil {
-		message := "state update"
-		if len(messages) > 0 && messages[0] != "" {
-			message = messages[0]
-		}
-		commitHook(path, message)
-	}
-
 	return nil
 }
