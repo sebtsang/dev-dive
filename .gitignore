@@ -1,3 +1,6 @@
+# DevDive bootstrap
 .env
 node_modules/
 web/node_modules/
+devdive.json
+bin/
