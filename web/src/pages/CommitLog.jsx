@@ -11,14 +11,14 @@ function timeAgo(isoString) {
     return 'Just now'
   }
   if (minutes < 60) {
-    return `${minutes} minute${minutes === 1 ? '' : 's'} ago`
+    return `${minutes} minutes ago`
   }
   const hours = Math.floor(minutes / 60)
   if (hours < 24) {
-    return `${hours} hour${hours === 1 ? '' : 's'} ago`
+    return `${hours} hours ago`
   }
   const days = Math.floor(hours / 24)
-  return `${days} day${days === 1 ? '' : 's'} ago`
+  return `${days} days ago`
 }
 
 export function CommitLog() {
@@ -27,50 +27,36 @@ export function CommitLog() {
 
   return (
     <section class="page">
-      <h2 class="page-title">Commit Analysis</h2>
-      <p class="page-subtitle">
-        Semantic commit summaries from the LLM instead of keyword-based issue closing.
-      </p>
+      <div class="page-hero">
+        <div>
+          <p class="eyebrow">Commits</p>
+          <h1 class="page-title">Delivery Timeline</h1>
+          <p class="page-subtitle">
+            Semantic commit summaries from the LLM instead of keyword-based issue closing.
+          </p>
+        </div>
+      </div>
 
       {commits.length === 0 ? (
         <div class="empty-state">No commits analysed yet. DevDive analyses your commits as you push.</div>
       ) : (
-        <div class="list-stack">
+        <div class="stack-list">
           {commits.map(commit => (
-            <article class="card" key={`${commit.commit_hash}-${commit.analysed_at}`}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+            <article class="list-card" key={`${commit.commit_hash}-${commit.analysed_at}`}>
+              <div class="card-head">
                 <strong class="mono">{(commit.commit_hash || '').slice(0, 7) || 'unknown'}</strong>
-                <span style={{ color: 'var(--muted)' }}>{timeAgo(commit.analysed_at)}</span>
+                <span class="card-time">{timeAgo(commit.analysed_at)}</span>
               </div>
-              <div style={{ marginTop: '10px', fontSize: '1.03rem', lineHeight: 1.6 }}>{commit.summary}</div>
+              <h3 class="card-title">{commit.summary}</h3>
+              <p class="card-copy">Commit analysis updated task progress without relying on manual issue-closing keywords.</p>
               <div class="pill-row">
                 {(commit.tasks_updated || []).map(id => (
-                  <span
-                    key={`closed-${commit.commit_hash}-${id}`}
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: '999px',
-                      background: '#dff5e7',
-                      color: '#1e7c49',
-                      fontWeight: 700,
-                      fontSize: '0.78rem',
-                    }}
-                  >
+                  <span class="label-tag tone-green" key={`closed-${commit.commit_hash}-${id}`}>
                     closed #{id}
                   </span>
                 ))}
                 {(commit.tasks_progressed || []).map(id => (
-                  <span
-                    key={`progress-${commit.commit_hash}-${id}`}
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: '999px',
-                      background: '#d8ebff',
-                      color: '#155e9a',
-                      fontWeight: 700,
-                      fontSize: '0.78rem',
-                    }}
-                  >
+                  <span class="label-tag tone-blue" key={`progress-${commit.commit_hash}-${id}`}>
                     progressed #{id}
                   </span>
                 ))}

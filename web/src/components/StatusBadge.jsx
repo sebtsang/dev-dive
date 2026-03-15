@@ -1,14 +1,14 @@
 const colors = {
-  open: { background: '#dde1e8', color: '#3f4756' },
-  in_progress: { background: '#d8ebff', color: '#155e9a' },
-  done: { background: '#dff5e7', color: '#1e7c49' },
-  passing: { background: '#dff5e7', color: '#1e7c49' },
-  failing: { background: '#ffd9d4', color: '#9b3429' },
-  pending: { background: '#fff1c9', color: '#8c6200' },
-  unknown: { background: '#dde1e8', color: '#3f4756' },
-  critical: { background: '#ffd9d4', color: '#9b3429' },
-  warning: { background: '#fff1c9', color: '#8c6200' },
-  info: { background: '#dde1e8', color: '#3f4756' },
+  open: { background: 'rgba(143, 157, 182, 0.14)', border: 'rgba(143, 157, 182, 0.2)', color: '#b8c2d5' },
+  in_progress: { background: 'rgba(47, 129, 247, 0.16)', border: 'rgba(47, 129, 247, 0.24)', color: '#7db1ff' },
+  done: { background: 'rgba(43, 196, 138, 0.16)', border: 'rgba(43, 196, 138, 0.22)', color: '#7addaf' },
+  passing: { background: 'rgba(43, 196, 138, 0.16)', border: 'rgba(43, 196, 138, 0.22)', color: '#7addaf' },
+  failing: { background: 'rgba(241, 91, 122, 0.16)', border: 'rgba(241, 91, 122, 0.2)', color: '#ff8da5' },
+  pending: { background: 'rgba(241, 166, 56, 0.16)', border: 'rgba(241, 166, 56, 0.2)', color: '#ffbf69' },
+  unknown: { background: 'rgba(143, 157, 182, 0.14)', border: 'rgba(143, 157, 182, 0.2)', color: '#b8c2d5' },
+  critical: { background: 'rgba(241, 91, 122, 0.16)', border: 'rgba(241, 91, 122, 0.2)', color: '#ff8da5' },
+  warning: { background: 'rgba(241, 166, 56, 0.16)', border: 'rgba(241, 166, 56, 0.2)', color: '#ffbf69' },
+  info: { background: 'rgba(143, 157, 182, 0.14)', border: 'rgba(143, 157, 182, 0.2)', color: '#b8c2d5' },
 }
 
 export function StatusBadge({ status }) {
@@ -23,6 +23,7 @@ export function StatusBadge({ status }) {
         padding: '6px 10px',
         borderRadius: '999px',
         background: palette.background,
+        border: `1px solid ${palette.border}`,
         color: palette.color,
         fontSize: '0.78rem',
         fontWeight: 700,

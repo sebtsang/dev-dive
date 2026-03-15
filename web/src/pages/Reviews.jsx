@@ -12,14 +12,14 @@ function timeAgo(isoString) {
     return 'Just now'
   }
   if (minutes < 60) {
-    return `${minutes} minute${minutes === 1 ? '' : 's'} ago`
+    return `${minutes} minutes ago`
   }
   const hours = Math.floor(minutes / 60)
   if (hours < 24) {
-    return `${hours} hour${hours === 1 ? '' : 's'} ago`
+    return `${hours} hours ago`
   }
   const days = Math.floor(hours / 24)
-  return `${days} day${days === 1 ? '' : 's'} ago`
+  return `${days} days ago`
 }
 
 export function Reviews() {
@@ -29,10 +29,15 @@ export function Reviews() {
 
   return (
     <section class="page">
-      <h2 class="page-title">Design Reviews</h2>
-      <p class="page-subtitle">
-        Architectural drift checks against the original design notes attached to each planned task.
-      </p>
+      <div class="page-hero">
+        <div>
+          <p class="eyebrow">Reviews</p>
+          <h1 class="page-title">Architecture Reviews</h1>
+          <p class="page-subtitle">
+            Drift checks against the original design notes attached to each planned task.
+          </p>
+        </div>
+      </div>
 
       {latest && latest.findings.length === 0 ? (
         <div class="banner">No drift detected in latest review.</div>
@@ -41,32 +46,27 @@ export function Reviews() {
       {reviews.length === 0 ? (
         <div class="empty-state">No design reviews yet. DevDive reviews your architecture every 10 commits.</div>
       ) : (
-        <div class="list-stack">
+        <div class="stack-list">
           {reviews.map(review => (
-            <article class="card" key={review.reviewed_at}>
-              <div style={{ marginBottom: '12px', color: 'var(--muted)' }}>
+            <article class="list-card" key={review.reviewed_at}>
+              <div style={{ marginBottom: '12px', color: 'var(--text-muted)' }}>
                 Reviewed {timeAgo(review.reviewed_at)}
               </div>
               {review.findings.length === 0 ? (
-                <div style={{ color: 'var(--muted)' }}>No findings for this review.</div>
+                <div class="card-copy">No findings for this review.</div>
               ) : (
-                <div class="list-stack">
+                <div class="stack-list">
                   {review.findings.map((finding, index) => (
-                    <div
+                    <article
                       key={`${finding.file}-${finding.detected_at}-${index}`}
-                      style={{
-                        padding: '14px',
-                        borderRadius: '18px',
-                        background: 'rgba(17, 32, 58, 0.04)',
-                        border: '1px solid rgba(17, 32, 58, 0.08)',
-                      }}
+                      class="summary-card"
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                      <div class="card-head">
                         <code class="mono">{finding.file}</code>
                         <StatusBadge status={finding.severity} />
                       </div>
-                      <div style={{ marginTop: '10px', lineHeight: 1.6 }}>{finding.finding}</div>
-                    </div>
+                      <p class="card-copy">{finding.finding}</p>
+                    </article>
                   ))}
                 </div>
               )}
