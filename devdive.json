@@ -1,0 +1,229 @@
+{
+  "meta": {
+    "version": "1.0"
+  },
+  "project": {
+    "name": "dev-dive",
+    "repo": "timothytenzin20/dev-dive",
+    "created_at": "2026-03-14T22:08:24Z"
+  },
+  "tasks": [
+    {
+      "id": "14",
+      "title": "Create Cobra CLI skeleton with subcommands",
+      "description": "Set up the root command and implement init, run, status, review, and rollback subcommands with flag parsing.",
+      "status": "open",
+      "estimate_hours": 8,
+      "design_notes": "Define a central Config struct loaded from .env and pass it via context to all subcommands.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/14",
+      "labels": [
+        "frontend",
+        "backend"
+      ]
+    },
+    {
+      "id": "15",
+      "title": "Load and validate environment variables",
+      "description": "Implement .env parsing, required variable checks, and expose a Config object for the application.",
+      "status": "open",
+      "estimate_hours": 4,
+      "design_notes": "Use github.com/joho/godotenv and panic on missing critical keys to fail fast.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/15",
+      "labels": [
+        "backend",
+        "devops"
+      ]
+    },
+    {
+      "id": "16",
+      "title": "Implement codebase scanner",
+      "description": "Read README and walk the project tree to build a concise summary string for the planner prompt.",
+      "status": "open",
+      "estimate_hours": 6,
+      "design_notes": "Cache the summary in memory; recompute only when files change via the file watcher.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/16",
+      "labels": [
+        "backend"
+      ]
+    },
+    {
+      "id": "17",
+      "title": "Build planner agent integration",
+      "description": "Call the HuggingFace inference endpoint with the summary and feature description, parse the JSON task list into internal structs.",
+      "status": "open",
+      "estimate_hours": 8,
+      "design_notes": "Wrap HTTP calls in a reusable LLMClient with timeout and retry logic.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/17",
+      "labels": [
+        "backend",
+        "api"
+      ]
+    },
+    {
+      "id": "18",
+      "title": "Define devdive.json state model and atomic IO",
+      "description": "Create Go structs for the full state, implement thread‑safe read/write with file locking and JSON marshaling.",
+      "status": "open",
+      "estimate_hours": 6,
+      "design_notes": "Protect state with a sync.RWMutex and expose Get/Update methods.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/18",
+      "labels": [
+        "backend",
+        "refactor"
+      ]
+    },
+    {
+      "id": "19",
+      "title": "GitHub Issues and Contents API wrapper",
+      "description": "Create functions to create issues with labels, commit devdive.json via the Contents API, and poll Actions workflow status.",
+      "status": "open",
+      "estimate_hours": 10,
+      "design_notes": "Encapsulate all GitHub calls in a GithubClient that handles authentication and rate‑limit retries.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/19",
+      "labels": [
+        "backend",
+        "api"
+      ]
+    },
+    {
+      "id": "20",
+      "title": "File system watcher and WebSocket broadcast",
+      "description": "Use fsnotify to watch devdive.json and other relevant files, broadcasting updates to all WS clients.",
+      "status": "open",
+      "estimate_hours": 6,
+      "design_notes": "Debounce rapid events (≤200ms) to avoid flooding the socket.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/20",
+      "labels": [
+        "backend",
+        "devops"
+      ]
+    },
+    {
+      "id": "21",
+      "title": "Git commit watcher and semantic analysis",
+      "description": "Poll git log for new commits, send diffs to the LLM, parse task progress, and update state accordingly.",
+      "status": "open",
+      "estimate_hours": 12,
+      "design_notes": "Run the watcher in a goroutine with context cancellation; maintain last‑seen commit SHA.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/21",
+      "labels": [
+        "backend",
+        "api"
+      ]
+    },
+    {
+      "id": "22",
+      "title": "Design review dispatcher",
+      "description": "Trigger an LLM design‑drift check every 10 commits or on manual review command, store findings in state.",
+      "status": "open",
+      "estimate_hours": 8,
+      "design_notes": "Leverage the same LLMClient as the planner; categorize findings by severity enum.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/22",
+      "labels": [
+        "backend",
+        "testing"
+      ]
+    },
+    {
+      "id": "23",
+      "title": "Nudge generation service",
+      "description": "Analyze state (estimates, CI status, drift) and append actionable nudges to devdive.json.",
+      "status": "open",
+      "estimate_hours": 5,
+      "design_notes": "Create a pure function that receives state and returns a slice of nudges for testability.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/23",
+      "labels": [
+        "backend",
+        "testing"
+      ]
+    },
+    {
+      "id": "24",
+      "title": "HTTP server with embedded frontend",
+      "description": "Set up Gorilla mux to serve static assets from the embedded dist folder and upgrade WS connections.",
+      "status": "open",
+      "estimate_hours": 7,
+      "design_notes": "Use go:embed for internal/server/dist/* and serve with http.FS.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/24",
+      "labels": [
+        "backend",
+        "devops"
+      ]
+    },
+    {
+      "id": "25",
+      "title": "WebSocket hub implementation",
+      "description": "Manage client connections, broadcast state updates, and handle graceful disconnects.",
+      "status": "open",
+      "estimate_hours": 6,
+      "design_notes": "Implement the hub as a singleton with channels for register, unregister, and broadcast.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/25",
+      "labels": [
+        "backend"
+      ]
+    },
+    {
+      "id": "26",
+      "title": "Preact dashboard WS integration and core pages",
+      "description": "Connect to the WS endpoint, consume state updates, and render Issues, CI, Nudges, Reviews, and Settings pages.",
+      "status": "open",
+      "estimate_hours": 12,
+      "design_notes": "Create a React Context for the WebSocket and use hooks to sync state to components.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/26",
+      "labels": [
+        "frontend"
+      ]
+    },
+    {
+      "id": "27",
+      "title": "CI monitor watcher",
+      "description": "Periodically poll the GitHub Actions API for workflow runs and update the CI section of the state.",
+      "status": "open",
+      "estimate_hours": 5,
+      "design_notes": "Run as a background goroutine with exponential backoff on failures.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/27",
+      "labels": [
+        "backend"
+      ]
+    },
+    {
+      "id": "28",
+      "title": "Write unit and integration tests",
+      "description": "Add test coverage for planner, state IO, GitHub client, commit analysis parsing, and WS broadcasting.",
+      "status": "open",
+      "estimate_hours": 15,
+      "design_notes": "Use httptest.Server to mock LLM and GitHub endpoints; achieve ≥80% coverage.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/28",
+      "labels": [
+        "testing",
+        "backend"
+      ]
+    },
+    {
+      "id": "29",
+      "title": "Add build scripts and CI pipeline",
+      "description": "Create npm script for Vite build, Go makefile target to embed assets, and a GitHub Actions workflow to run tests.",
+      "status": "open",
+      "estimate_hours": 4,
+      "design_notes": "Make 'make build' perform npm run build → go build in one step.",
+      "issue_url": "https://github.com/timothytenzin20/dev-dive/issues/29",
+      "labels": [
+        "devops"
+      ]
+    }
+  ],
+  "ci": {
+    "status": "unknown",
+    "last_run": "",
+    "workflow_url": ""
+  },
+  "nudges": [],
+  "commits": [],
+  "reviews": [
+    {
+      "reviewed_at": "2026-03-14T22:11:20Z",
+      "findings": []
+    }
+  ],
+  "init_commit": "83217e563ad214a5882ff47e26e8571b34533750"
+}
